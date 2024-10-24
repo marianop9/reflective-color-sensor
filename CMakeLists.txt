@@ -5,7 +5,7 @@ set(PICO_BOARD pico_w)
 
 include(pico-sdk/pico_sdk_init.cmake)
 
-project(color-sensor)
+project(color-sensor C CXX ASM)
 
 # initialize the Raspberry Pi Pico SDK
 pico_sdk_init()
