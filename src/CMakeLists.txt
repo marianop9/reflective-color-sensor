@@ -5,6 +5,7 @@ add_subdirectory(lib/lcd)
 target_link_libraries(sensor
     pico_stdlib
     pico_cyw43_arch_none
+    hardware_adc
     mylib-lcd
     )
 
