@@ -3,8 +3,9 @@
 #include "pico/cyw43_arch.h"
 #include "pico/stdlib.h"
 #include "hardware/adc.h"
+#include <stdio.h>
 
-#include "lib/lcd/include/lcd.h"
+#include "lcd.h"
 
 // pins
 #define LCD_PIN_RS 16
@@ -30,6 +31,29 @@ bool get_pin(uint32_t pin) {
 }
 
 // int led_pins[3] = {18, 19, 20};
+enum Colors {
+  R = 0, G, B
+};
+char colorNames[] = {'R', 'G', 'B'};
+
+void update_display(LCDAdapter_t *adapter, enum Colors color, uint8_t val) {
+  // 1era linea muestra el valor hex directo
+  uint8_t hex_col = 5;
+  lcd_set_position(adapter, 0, hex_col + color*2);
+
+  char hex_buffer[3];
+  sprintf(hex_buffer, "%02x", val);
+
+  lcd_print(adapter, hex_buffer);
+
+  lcd_set_position(adapter, 1, color*6);
+
+  int rel_val = val * 100 / 256;
+  char rel_buffer[3];
+  sprintf(rel_buffer, "%c:%d", colorNames[color], rel_val);
+
+  lcd_print(adapter, rel_buffer); 
+}
 
 int main() {
     stdio_init_all();
@@ -42,7 +66,10 @@ int main() {
     );
 
     lcd_init(adapter);
-    lcd_hello_world(adapter);
+    update_display(adapter, R, 255);
+    update_display(adapter, G, 0);
+    update_display(adapter, B, 64);
+
         
     sleep_ms(500);
     printf("Hello world!\n");

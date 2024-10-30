@@ -1,4 +1,4 @@
-#include "include/lcd.h"
+#include "lcd.h"
 
 void lcd_pulse_enable(LCDAdapter_t* adapter);
 

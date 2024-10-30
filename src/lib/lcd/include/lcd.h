@@ -53,6 +53,8 @@ void lcd_home(LCDAdapter_t* adapter);
 
 void lcd_set_cursor(LCDAdapter_t* adapter, bool show, bool blink);
 
-void lcd_write(LCDAdapter_t* adapter, char* str);
+void lcd_print(LCDAdapter_t* adapter, char* str);
+
+void lcd_set_position(LCDAdapter_t *adapter, uint8_t row, uint8_t col);
 
 #endif

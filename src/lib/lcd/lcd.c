@@ -163,8 +163,27 @@ void lcd_set_cursor(LCDAdapter_t* adapter, bool show, bool blink) {
 }
 
 // writes a null-terminated string
-void lcd_write(LCDAdapter_t* adapter, char* str) {
+void lcd_print(LCDAdapter_t* adapter, char* str) {
   for (char* p=str; *p != '\0'; p++) {
     lcd_data(adapter, *p);
   }
+}
+
+void lcd_set_position(LCDAdapter_t *adapter, uint8_t row, uint8_t col) {
+  if (row != 0 && row != 1) {
+    return;
+  }
+  if (col < 0 && row > 15) {
+    return;
+  }
+
+  // 2-line mode:
+  // line 1: 0x00 to 0x27
+  // line 2: 0x40 to 0x67
+  // ddram can hold up to 80 characters (40/line)
+
+  uint8_t pos = (row * 0x40) | col;
+
+  uint8_t cmd = 0b10000000 | pos;
+  lcd_command(adapter, cmd);
 }
