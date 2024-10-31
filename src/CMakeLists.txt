@@ -1,11 +1,12 @@
-add_executable(sensor main.c)
-
 add_subdirectory(lib/lcd)
+
+add_executable(sensor main.c)
 
 target_link_libraries(sensor
     pico_stdlib
-    pico_cyw43_arch_none
+    # pico_cyw43_arch_none
     hardware_adc
+    hardware_dma
     mylib-lcd
     )
 
