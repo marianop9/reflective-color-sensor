@@ -1,0 +1,1 @@
+void apply_filter(double* inputs, double* outputs, int input_count);
