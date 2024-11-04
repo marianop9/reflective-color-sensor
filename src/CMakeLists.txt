@@ -1,4 +1,5 @@
 add_subdirectory(lib/lcd)
+add_subdirectory(lib/web_server)
 
 add_executable(sensor main.c)
 
