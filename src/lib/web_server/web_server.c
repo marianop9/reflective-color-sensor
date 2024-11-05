@@ -5,10 +5,6 @@
 #include "lwip/init.h"
 #include "lwip/tcp.h"
 
-// move to compile-time definition
-#define WIFI_SSID "Fibertel WiFi709 2.4GHz"
-#define WIFI_PWD "01429015004"
-
 void print_ip_address() {
     const ip4_addr_t *ip = netif_ip4_addr(netif_default); // Get the IP address
     if (ip) {
@@ -18,11 +14,17 @@ void print_ip_address() {
     }
 }
 
+void set_led(int on) { cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, on); }
+
 int wifi_connect(const char *ssid, const char *pwd) {
     if (cyw43_arch_init()) {
         printf("failed to initialise\n");
         return 1;
     }
+
+    set_led(1);
+    sleep_ms(4000);
+    set_led(0);
 
     cyw43_arch_enable_sta_mode();
 
@@ -37,16 +39,23 @@ int wifi_connect(const char *ssid, const char *pwd) {
     print_ip_address();
 }
 
-const char *handleHelloWorld(int iIndex, int iNumParams, char *pcParam[],
-                             char *pcValue[]) {
-    return "/hello.html";
+const char *handleIndex(int iIndex, int iNumParams, char *pcParam[],
+                        char *pcValue[]) {
+    return "/index.shtml";
+}
+
+const char *ssi_tags[] = {
+    "hexcode",
+};
+
+u16_t ssi_handler(int iIndex, char *pcInsert, int iInsertLen) {
+    return snprintf(pcInsert, iInsertLen, "#0000ff");
 }
 
 int main() {
     stdio_init_all();
-    sleep_ms(4000);
 
-    wifi_connect(WIFI_SSID, WIFI_PWD);
+    wifi_connect(WIFI_SSID, WIFI_PASSWORD);
 
     // struct tcp_pcb *pcb = tcp_new();
     // if (pcb == NULL) {
@@ -59,12 +68,16 @@ int main() {
     // pcb = tcp_listen(pcb);
     // printf("HTTP server listening on port 80\n");
 
-    tCGI handlers[] = {
-        {.pcCGIName = "/", .pfnCGIHandler = handleHelloWorld},
-    };
-
     httpd_init();
-    http_set_cgi_handlers(handlers, 2);
+
+    tCGI handlers[] = {
+        {.pcCGIName = "/", .pfnCGIHandler = handleIndex},
+    };
+    http_set_cgi_handlers(handlers, sizeof(handlers) / sizeof(handlers[0]));
+
+    http_set_ssi_handler(ssi_handler, ssi_tags, LWIP_ARRAYSIZE(ssi_tags));
+
+    set_led(1);
 
     while (true) {
         cyw43_arch_poll();

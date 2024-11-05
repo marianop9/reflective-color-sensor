@@ -85,6 +85,7 @@
 #define DHCP_DEBUG                  LWIP_DBG_OFF
 
 #define LWIP_HTTPD_CGI 1
+#define LWIP_HTTPD_SSI 1
 
 #define HTTPD_FSDATA_FILE "pico_fsdata.inc"
 
