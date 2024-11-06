@@ -1,10 +1,10 @@
 /* Aplicación ejemplo usando un servidor HTTP con lwIP
 */
+#include "web_server.h"
 
 #include "pico/cyw43_arch.h"
 #include "pico/multicore.h"
 #include "pico/stdlib.h"
-#include "pico/util/queue.h"
 
 #include "lwip/apps/httpd.h"
 #include "lwip/init.h"
@@ -14,9 +14,9 @@
 
 // replaced with semaphore
 // volatile bool triggered = false;
-semaphore_t trigger_sem;
+semaphore_t *_trigger_sem;
 
-queue_t q;
+queue_t *_data_queue;
 
 const char *get_ip_address() {
     const ip4_addr_t *ip = netif_ip4_addr(netif_default); // Get the IP address
@@ -35,7 +35,7 @@ char last_hexcode[7] = "cecece";
 
 void set_last_measurement() {
     uint32_t received;
-    if (queue_try_remove(&q, &received)) {
+    if (queue_try_remove(_data_queue, &received)) {
         // uint8_t r = (received >> 16) & 0xff;
         // uint8_t g = (received >> 8) & 0xff;
         // uint8_t b = received & 0xff;
@@ -63,7 +63,7 @@ const char *handleLastMeasurement(int iIndex, int iNumParams, char *pcParam[],
 const char *handleTrigger(int iIndex, int iNumParams, char *pcParam[],
                           char *pcValue[]) {
     // libera el semaforo
-    sem_release(&trigger_sem);
+    sem_release(_trigger_sem);
 
     return "/action_response.json";
 }
@@ -95,7 +95,14 @@ tCGI cgi_handlers[] = {
     {.pcCGIName = "/trigger-measurement", .pfnCGIHandler = handleTrigger},
 };
 
-int web_server_init() {
+int web_server_init(queue_t *pdata_queue, semaphore_t *ptrigger_sem) {
+    _data_queue = pdata_queue;
+    _trigger_sem = pdata_queue;
+
+    queue_init(_data_queue, sizeof(cs_web_server_data_t), 1);
+    
+    sem_init(_trigger_sem, 0, 1);
+    
     if (cyw43_arch_init()) {
         printf("failed to initialise\n");
         return 1;
@@ -134,67 +141,6 @@ void web_server_poll() {
         cyw43_arch_poll();
         sleep_ms(500);
     }
-}
-
-void core1_main() {
-    // refactorizar para que reciba el semaforo y cola desde la aplicación principal
-    web_server_init();
-
-    // envia un valor arbitrario al nucleo0 indicando que el servidor inicio
-    multicore_fifo_push_blocking(FLAG);
-
-    web_server_poll();
-}
-
-int main() {
-    stdio_init_all();
-    sleep_ms(2000);
-
-    // inicializa el semaforo
-    // el semaforo se libera cuando se pide la medicion
-    sem_init(&trigger_sem, 0, 1);
-
-    // inicializa la cola
-    // envia el ultimo resultado de la medicion, es recibida por el servidor
-    uint32_t value = 0xff;
-    queue_init(&q, sizeof(value), 1);
-
-    multicore_launch_core1(core1_main);
-
-    // sincroniza el nucleo0 con el nucleo1. Espera que el 1 levante el servidor
-    printf("core0 is waiting...\n");
-    if (multicore_fifo_pop_blocking() != FLAG) {
-        printf("sync mismatch, exiting...\n");
-        return 1;
-    }
-    printf("core1 server is up, core0 starts running...\n");
-
-    while (1) {
-        sem_acquire_blocking(&trigger_sem);
-
-        // cuando se pide una medicion se libera el semaforo y se ejecuta una
-        // medicion - la respuesta al pedido solo indica que se ejecuta la
-        // medicion
-
-        // la pagina vuelve a hacer otro pedido con el resultado de la medicion
-        // luego de unos segundos
-
-        // simulacion de la medicion
-        // se envia un valor a la cola y se asigna un nuevo valor
-        if (queue_try_add(&q, &value)) {
-            printf("\tpushed %08X\n", value);
-
-            if (value < 0xff000000) {
-                value = value << 8;
-            } else {
-                value = 0xff;
-            }
-        }
-    }
-
-    printf("exiting...\n");
-
-    return 0;
 }
 
 // TODO!

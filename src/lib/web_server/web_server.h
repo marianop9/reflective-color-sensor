@@ -1,5 +1,8 @@
-#include <stdbool.h>
+#include "pico/util/queue.h"
+#include "pico/sem.h"
 
-bool web_server_init();
+typedef uint32_t cs_web_server_data_t;
 
-bool web_server_poll();
+int web_server_init(queue_t *pdata_queue, semaphore_t *ptrigger_sem);
+
+void web_server_poll();
