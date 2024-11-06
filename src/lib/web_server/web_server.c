@@ -1,91 +1,211 @@
+/* Aplicación ejemplo usando un servidor HTTP con lwIP
+*/
+
 #include "pico/cyw43_arch.h"
+#include "pico/multicore.h"
 #include "pico/stdlib.h"
+#include "pico/util/queue.h"
 
 #include "lwip/apps/httpd.h"
 #include "lwip/init.h"
 #include "lwip/tcp.h"
 
-void print_ip_address() {
+#define FLAG 99
+
+// replaced with semaphore
+// volatile bool triggered = false;
+semaphore_t trigger_sem;
+
+queue_t q;
+
+const char *get_ip_address() {
     const ip4_addr_t *ip = netif_ip4_addr(netif_default); // Get the IP address
-    if (ip) {
-        printf("Pico W IP Address: %s\n", ip4addr_ntoa(ip));
-    } else {
-        printf("Failed to get IP address\n");
-    }
+
+    if (ip)
+        return ip4addr_ntoa(ip);
+
+    printf("failed to get ip address\n");
+    return NULL;
 }
 
 void set_led(int on) { cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, on); }
 
-int wifi_connect(const char *ssid, const char *pwd) {
+// valor inicial (medio gris)
+char last_hexcode[7] = "cecece";
+
+void set_last_measurement() {
+    uint32_t received;
+    if (queue_try_remove(&q, &received)) {
+        // uint8_t r = (received >> 16) & 0xff;
+        // uint8_t g = (received >> 8) & 0xff;
+        // uint8_t b = received & 0xff;
+        // sprintf(last_hexcode, "%02X%02X%02X", r, g, b);
+        sprintf(last_hexcode, "%06X", received);
+    }
+}
+
+// no debe estar ejecutando este handler sino otro por defecto para la ruta "/"
+// lwIP tiene una lista de nombres predeterminados, antes de buscar el archivo
+// pedido en el CGI, se fija si la ruta coincide con algun nombre predeterminado
+// ver NUM_DEFAULT_FILENAMES
+// ESTE HANDLER NUNCA SE EJECUTA
+const char *handleIndex(int iIndex, int iNumParams, char *pcParam[],
+                        char *pcValue[]) {
+    return "/index.shtml";
+}
+
+const char *handleLastMeasurement(int iIndex, int iNumParams, char *pcParam[],
+                                  char *pcValue[]) {
+    set_last_measurement();
+    return "/color_response.json";
+}
+
+const char *handleTrigger(int iIndex, int iNumParams, char *pcParam[],
+                          char *pcValue[]) {
+    // libera el semaforo
+    sem_release(&trigger_sem);
+
+    return "/action_response.json";
+}
+
+const char *ssi_tags[] = {
+    "hexcode",
+    "status",
+};
+
+u16_t ssi_handler(int iIndex, char *pcInsert, int iInsertLen) {
+    u16_t written = 0;
+    switch (iIndex) {
+    case 0: {
+        written = snprintf(pcInsert, iInsertLen, "#%s", last_hexcode);
+        break;
+    }
+    case 1: {
+        written = snprintf(pcInsert, iInsertLen, "triggered");
+        break;
+    }
+    }
+
+    return written;
+}
+
+tCGI cgi_handlers[] = {
+    {.pcCGIName = "/", .pfnCGIHandler = handleIndex},
+    {.pcCGIName = "/last-measurement", .pfnCGIHandler = handleLastMeasurement},
+    {.pcCGIName = "/trigger-measurement", .pfnCGIHandler = handleTrigger},
+};
+
+int web_server_init() {
     if (cyw43_arch_init()) {
         printf("failed to initialise\n");
         return 1;
     }
 
     set_led(1);
-    sleep_ms(4000);
+    sleep_ms(2000);
     set_led(0);
 
     cyw43_arch_enable_sta_mode();
 
-    printf("connecting...\n");
-    if (cyw43_arch_wifi_connect_timeout_ms(ssid, pwd, CYW43_AUTH_WPA2_AES_PSK,
-                                           10000)) {
+    printf("connecting to %s\n", WIFI_SSID);
+    if (cyw43_arch_wifi_connect_timeout_ms(WIFI_SSID, WIFI_PASSWORD,
+                                           CYW43_AUTH_WPA2_AES_PSK, 10000)) {
         printf("failed to connect\n");
         return 1;
     }
 
-    printf("connected!\n\n");
-    print_ip_address();
-}
+    const char* ipaddr = get_ip_address();
+    if (ipaddr == NULL)
+        return 1;
 
-const char *handleIndex(int iIndex, int iNumParams, char *pcParam[],
-                        char *pcValue[]) {
-    return "/index.shtml";
-}
-
-const char *ssi_tags[] = {
-    "hexcode",
-};
-
-u16_t ssi_handler(int iIndex, char *pcInsert, int iInsertLen) {
-    return snprintf(pcInsert, iInsertLen, "#0000ff");
-}
-
-int main() {
-    stdio_init_all();
-
-    wifi_connect(WIFI_SSID, WIFI_PASSWORD);
-
-    // struct tcp_pcb *pcb = tcp_new();
-    // if (pcb == NULL) {
-    //     printf("Failed to create PCB\n");
-    //     return 1;
-    // }
-
-    // tcp_bind(pcb, IPADDR_ANY, 80);
-
-    // pcb = tcp_listen(pcb);
-    // printf("HTTP server listening on port 80\n");
-
+    printf("Pico W server running at IP Address: %s\n", ipaddr);
     httpd_init();
 
-    tCGI handlers[] = {
-        {.pcCGIName = "/", .pfnCGIHandler = handleIndex},
-    };
-    http_set_cgi_handlers(handlers, sizeof(handlers) / sizeof(handlers[0]));
+    http_set_cgi_handlers(cgi_handlers, LWIP_ARRAYSIZE(cgi_handlers));
 
     http_set_ssi_handler(ssi_handler, ssi_tags, LWIP_ARRAYSIZE(ssi_tags));
 
     set_led(1);
+}
 
+void web_server_poll() {
+    printf("starting web server poll\n");
     while (true) {
         cyw43_arch_poll();
         sleep_ms(500);
     }
+}
+
+void core1_main() {
+    // refactorizar para que reciba el semaforo y cola desde la aplicación principal
+    web_server_init();
+
+    // envia un valor arbitrario al nucleo0 indicando que el servidor inicio
+    multicore_fifo_push_blocking(FLAG);
+
+    web_server_poll();
+}
+
+int main() {
+    stdio_init_all();
+    sleep_ms(2000);
+
+    // inicializa el semaforo
+    // el semaforo se libera cuando se pide la medicion
+    sem_init(&trigger_sem, 0, 1);
+
+    // inicializa la cola
+    // envia el ultimo resultado de la medicion, es recibida por el servidor
+    uint32_t value = 0xff;
+    queue_init(&q, sizeof(value), 1);
+
+    multicore_launch_core1(core1_main);
+
+    // sincroniza el nucleo0 con el nucleo1. Espera que el 1 levante el servidor
+    printf("core0 is waiting...\n");
+    if (multicore_fifo_pop_blocking() != FLAG) {
+        printf("sync mismatch, exiting...\n");
+        return 1;
+    }
+    printf("core1 server is up, core0 starts running...\n");
+
+    while (1) {
+        sem_acquire_blocking(&trigger_sem);
+
+        // cuando se pide una medicion se libera el semaforo y se ejecuta una
+        // medicion - la respuesta al pedido solo indica que se ejecuta la
+        // medicion
+
+        // la pagina vuelve a hacer otro pedido con el resultado de la medicion
+        // luego de unos segundos
+
+        // simulacion de la medicion
+        // se envia un valor a la cola y se asigna un nuevo valor
+        if (queue_try_add(&q, &value)) {
+            printf("\tpushed %08X\n", value);
+
+            if (value < 0xff000000) {
+                value = value << 8;
+            } else {
+                value = 0xff;
+            }
+        }
+    }
 
     printf("exiting...\n");
 
-    cyw43_arch_deinit();
     return 0;
 }
+
+// TODO!
+
+// move web_server to run on a separate core
+
+// notify sensor core when a new measurement is requested
+
+// receive and persist last measurement from sensor core
+
+// configure ssi to retrieve the last measurement
+
+// webpage should delay > 1s after measurement is requested and then ask for the
+// last measurement

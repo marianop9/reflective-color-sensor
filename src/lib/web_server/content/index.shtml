@@ -52,12 +52,63 @@
     </section>
 
     <script>
+        const btnTrigger = document.getElementById('btn-trigger-measurement');
+
+        function setHexcode(hc) {
+            document.getElementById('hexcode').innerText = hc;
+
+            document.getElementsByClassName('color-box')[0].style.backgroundColor = hc
+        }
+
+        function setBtnLoading(loading) {
+            if (loading)
+                btnTrigger.classList.add('is-loading')
+            else
+                btnTrigger.classList.remove('is-loading')
+        }
+
         window.onload = () => {
             const hexcode = document.getElementById('hexcode').innerText;
             console.log(hexcode);
 
             document.getElementsByClassName('color-box')[0].style.backgroundColor = hexcode
         }
+
+        async function triggerMeasurement() {
+            setBtnLoading(true);
+            const resp = await fetch('/trigger-measurement')
+                .then(resp => {
+                    if (!resp.ok)
+                        return;
+                    console.log('triggered')
+
+                    setTimeout(() => {
+                        console.log('retrieving last measurement')
+
+                        getLastMeasurement().then(() => setBtnLoading(false));
+                    }, 2000);
+                })
+                .catch(err => {
+                    console.error(err)
+                    setBtnLoading(false);
+                })
+        }
+
+        async function getLastMeasurement() {
+            const resp = await fetch('/last-measurement')
+
+            if (!resp.ok)
+                return;
+
+            const data = await resp.json()
+
+            if (data.hexcode) {
+                setHexcode(data.hexcode)
+            }
+        }
+
+        btnTrigger.addEventListener('click', triggerMeasurement);
+
     </script>
 </body>
 
