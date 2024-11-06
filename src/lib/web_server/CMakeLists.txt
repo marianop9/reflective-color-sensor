@@ -1,6 +1,9 @@
 add_library(cs_web_server web_server.c)
 
-target_include_directories(cs_web_server INTERFACE .)
+target_include_directories(cs_web_server 
+    # INTERFACE ${CMAKE_CURRENT_LIST_DIR}
+    PUBLIC ${CMAKE_CURRENT_LIST_DIR}/
+)
 
 target_link_libraries(cs_web_server
     pico_stdlib
@@ -10,11 +13,6 @@ target_link_libraries(cs_web_server
     pico_lwip_http
     httpd_content
 )
-
-target_include_directories(cs_web_server PRIVATE
-    ${CMAKE_CURRENT_LIST_DIR}
-)
-
 
 set(WIFI_SSID "" CACHE STRING "Wi-Fi SSID")
 set(WIFI_PASSWORD "" CACHE STRING "Wi-Fi password")
@@ -40,7 +38,7 @@ pico_set_lwip_httpd_content(httpd_content INTERFACE
         ${CMAKE_CURRENT_LIST_DIR}/content/action_response.json
 )
 
-add_executable(example_server main.c)
+add_executable(example_server example_server.c)
 
 target_link_libraries(example_server 
     cs_web_server

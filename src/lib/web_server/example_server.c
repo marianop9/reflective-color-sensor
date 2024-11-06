@@ -1,9 +1,11 @@
 #include "web_server.h"
 
 #include "pico/stdlib.h"
-
+#include "pico/multicore.h"
 #include "pico/sem.h"
 #include "pico/util/queue.h"
+
+#include <stdio.h>
 
 #define FLAG 99
 

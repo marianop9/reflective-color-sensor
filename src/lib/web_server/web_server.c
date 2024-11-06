@@ -1,5 +1,5 @@
 /* Aplicación ejemplo usando un servidor HTTP con lwIP
-*/
+ */
 #include "web_server.h"
 
 #include "pico/cyw43_arch.h"
@@ -9,6 +9,8 @@
 #include "lwip/apps/httpd.h"
 #include "lwip/init.h"
 #include "lwip/tcp.h"
+
+#include <stdio.h>
 
 #define FLAG 99
 
@@ -34,7 +36,7 @@ void set_led(int on) { cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, on); }
 char last_hexcode[7] = "cecece";
 
 void set_last_measurement() {
-    uint32_t received;
+    cs_web_server_data_t received;
     if (queue_try_remove(_data_queue, &received)) {
         // uint8_t r = (received >> 16) & 0xff;
         // uint8_t g = (received >> 8) & 0xff;
@@ -97,12 +99,12 @@ tCGI cgi_handlers[] = {
 
 int web_server_init(queue_t *pdata_queue, semaphore_t *ptrigger_sem) {
     _data_queue = pdata_queue;
-    _trigger_sem = pdata_queue;
+    _trigger_sem = ptrigger_sem;
 
     queue_init(_data_queue, sizeof(cs_web_server_data_t), 1);
-    
+
     sem_init(_trigger_sem, 0, 1);
-    
+
     if (cyw43_arch_init()) {
         printf("failed to initialise\n");
         return 1;
@@ -121,7 +123,7 @@ int web_server_init(queue_t *pdata_queue, semaphore_t *ptrigger_sem) {
         return 1;
     }
 
-    const char* ipaddr = get_ip_address();
+    const char *ipaddr = get_ip_address();
     if (ipaddr == NULL)
         return 1;
 
