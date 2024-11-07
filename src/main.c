@@ -33,6 +33,17 @@ uint16_t adc_r_buffer[ADC_READ_COUNT];
 uint16_t adc_g_buffer[ADC_READ_COUNT];
 uint16_t adc_b_buffer[ADC_READ_COUNT];
 
+uint16_t *get_buffer(uint8_t idx) {
+    uint16_t *buf = adc_r_buffer;
+    if (idx == 1) {
+        buf = adc_g_buffer;
+    } else if (idx == 2) {
+        buf = adc_b_buffer;
+    }
+
+    return buf;
+}
+
 volatile uint dma_chan;
 
 // sync primitives
@@ -141,17 +152,7 @@ void print_adc_results(uint16_t *values, int count, int curr_idx) {
 
 // necesita saber que color esta procesando
 uint8_t process_samples(uint8_t idx) {
-    uint16_t *buf;
-    switch (idx) {
-    case R:
-        buf = adc_r_buffer;
-        break;
-    case G:
-        buf = adc_g_buffer;
-        break;
-    case B:
-        buf = adc_b_buffer;
-    }
+    uint16_t *buf = get_buffer(idx);
 
     float sum = 0;
     for (int j = 0; j < ADC_READ_COUNT; ++j) {
@@ -180,12 +181,23 @@ uint8_t process_samples(uint8_t idx) {
         //     adcw[i] = Vw[i] * (1 << 12) / 3.33;
         // }
 
+        // valores de ADC para sup blanca y negra
+        // float adck[3] = {812, 1513, 1107};
+        // float adcw[3] = {76, 152, 120};
+        float adck[3] = {664, 1660, 897};
+        float adcw[3] = {74, 142, 94};
+
         // limito el valor leido del adc a  los valores de calibracion
-        // float relative = (val - adcw) / (adck - adcw);
+        if (val < adcw[idx]) {
+            val = adcw[idx];
+        } else if (val > adck[idx]) {
+            val = adck[idx];
+        }
+        
+        float relative = (adck[idx] - val) / (adck[idx] - adcw[idx]);
+        float hex_val = relative * 255;
 
-        // float hex_val = relative * 255;
-
-        float hex_val = val * (1 << 8) / (1 << 12);
+        // float hex_val = val * (1 << 8) / (1 << 12);
 
         sum += hex_val;
 
@@ -242,21 +254,9 @@ void start_adc_sampling() {
     gpio_put(led_pins[idx], 1);
     // sleep_ms(500);
 
-    uint16_t *buf;
-    switch (idx) {
-    case R:
-        buf = adc_r_buffer;
-        break;
-    case G:
-        buf = adc_g_buffer;
-        break;
-    case B:
-        buf = adc_b_buffer;
-        break;
-    }
+    uint16_t *buf = get_buffer(idx);
 
     // printf("restart adc + dma\n");
-
     dma_channel_set_write_addr(dma_chan, buf, true);
     // defer adc start to alarm
     add_alarm_in_ms(500, alarm_cb, NULL, true);
