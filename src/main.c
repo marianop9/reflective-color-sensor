@@ -1,243 +1,372 @@
-#include "stdio.h"
-#include "pico/stdlib.h"
+#include "web_server.h"
+
 #include "hardware/adc.h"
 #include "hardware/dma.h"
+#include "pico/multicore.h"
+#include "pico/stdlib.h"
 
-#include "lcd.h"
+#include <stdio.h>
 
-/*
-// LCD pins
-#define LCD_PIN_RS 16
-#define LCD_PIN_RW 17
-#define LCD_PIN_ENABLE 18
+#define FLAG 99
 
-#define LCD_PIN_D7 19
-#define LCD_PIN_D6 20
-#define LCD_PIN_D5 21
-#define LCD_PIN_D4 22 
-*/
-
-#define ADC_CHAN 0
+#define ADC_CHAN 2
 
 #define LED_PIN_R 18 // 630 nm
 #define LED_PIN_G 19 // 520 nm
 #define LED_PIN_B 20 // 470 nm
 
 void configure_pin(uint32_t pin, bool out) {
-  gpio_init(pin);
-  gpio_set_dir(pin, out);
+    gpio_init(pin);
+    gpio_set_dir(pin, out);
 }
 
-void set_pin(uint32_t pin, bool value) {
-  gpio_put(pin, value);
-}
+void set_pin(uint32_t pin, bool value) { gpio_put(pin, value); }
 
-bool get_pin(uint32_t pin) {
-  return gpio_get(pin);
-}
+bool get_pin(uint32_t pin) { return gpio_get(pin); }
 
 int led_pins[3] = {LED_PIN_R, LED_PIN_G, LED_PIN_B};
-enum Colors {
-  R = 0, G, B
-};
+enum Colors { R = 0, G, B };
 char colorNames[] = {'R', 'G', 'B'};
 
 #define ADC_READ_COUNT 50
-uint16_t adc_r_buffer[ADC_READ_COUNT] = {0};
-uint16_t adc_g_buffer[ADC_READ_COUNT] = {0};
-uint16_t adc_b_buffer[ADC_READ_COUNT] = {0};
+uint16_t adc_r_buffer[ADC_READ_COUNT];
+uint16_t adc_g_buffer[ADC_READ_COUNT];
+uint16_t adc_b_buffer[ADC_READ_COUNT];
 
-void update_display(LCDAdapter_t *adapter, enum Colors color, uint8_t val) {
-  // 1era linea muestra el valor hex directo
-  uint8_t hex_col = 5;
-  lcd_set_position(adapter, 0, hex_col + color*2);
+volatile uint dma_chan;
 
-  char hex_buffer[3];
-  sprintf(hex_buffer, "%02x", val);
+// sync primitives
+semaphore_t trigger_sem;
+queue_t data_queue;
 
-  lcd_print(adapter, hex_buffer);
+queue_t processing_queue;
 
-  lcd_set_position(adapter, 1, color*6);
+// void update_display(LCDAdapter_t *adapter, enum Colors color, uint8_t val) {
+//   // 1era linea muestra el valor hex directo
+//   uint8_t hex_col = 5;
+//   lcd_set_position(adapter, 0, hex_col + color*2);
 
-  int rel_val = val * 100 / 256;
-  char rel_buffer[3];
-  sprintf(rel_buffer, "%c:%d", colorNames[color], rel_val);
+//   char hex_buffer[3];
+//   sprintf(hex_buffer, "%02x", val);
 
-  lcd_print(adapter, rel_buffer); 
-}
+//   lcd_print(adapter, hex_buffer);
+
+//   lcd_set_position(adapter, 1, color*6);
+
+//   int rel_val = val * 100 / 256;
+//   char rel_buffer[3];
+//   sprintf(rel_buffer, "%c:%d", colorNames[color], rel_val);
+
+//   lcd_print(adapter, rel_buffer);
+// }
 
 // inicializa y configura como salida los pines del led
 void init_led() {
-  uint32_t gpio_mask = 0;
-  for (int i=0; i<3; i++) {
-    gpio_mask |= 1 << led_pins[i];
-  }
+    uint32_t gpio_mask = 0;
+    for (int i = 0; i < 3; i++) {
+        gpio_mask |= 1 << led_pins[i];
+    }
 
-  gpio_init_mask(gpio_mask);
-  gpio_set_dir_out_masked(gpio_mask);
+    gpio_init_mask(gpio_mask);
+    gpio_set_dir_out_masked(gpio_mask);
 }
 
 void init_adc() {
-  // Initalize adc and select current channel
-  adc_gpio_init(26 + ADC_CHAN);
+    // Initalize adc and select current channel
+    adc_gpio_init(26 + ADC_CHAN);
 
-  adc_init();
+    adc_init();
 
-  adc_select_input(ADC_CHAN);
+    adc_select_input(ADC_CHAN);
 
-  // adc starts a conversion every clkdiv + 1 clock cycles
-  // adc is paced by 48 MHz clock
-  // adc should sample every 47999 + 1 = 48000 cycles -> sample freq is 1ksps ===> fs = 1 kHz
-  adc_set_clkdiv(47999);
-  adc_fifo_setup(
-    true,    // Write each completed conversion to the sample FIFO
-    true,    // Enable DMA data request (DREQ)
-    1,       // DREQ (and IRQ) asserted when at least 1 sample present
-    false,   // We won't see the ERR bit because of 8 bit reads; disable.
-    false     // Don't! Shift each sample to 8 bits when pushing to FIFO 
-  );
+    // adc starts a conversion every clkdiv + 1 clock cycles
+    // adc is paced by 48 MHz clock
+    // adc should sample every 47999 + 1 = 48000 cycles -> sample freq is 1ksps
+    // ===> fs = 1 kHz
+    adc_set_clkdiv(47999);
+    adc_fifo_setup(
+        true,  // Write each completed conversion to the sample FIFO
+        true,  // Enable DMA data request (DREQ)
+        1,     // DREQ (and IRQ) asserted when at least 1 sample present
+        false, // We won't see the ERR bit because of 8 bit reads; disable.
+        false  // Don't! Shift each sample to 8 bits when pushing to FIFO
+    );
 }
 
-void print_adc_results(uint16_t* values, int count, int curr_idx) {
-  printf("results:\n");
+void print_adc_results(uint16_t *values, int count, int curr_idx) {
+    printf("results:\n");
 
-  float sum = 0;
+    float sum = 0;
 
-  for (int i = 0; i < count; ++i) {
-    uint16_t val = values[i];
+    for (int i = 0; i < count; ++i) {
+        uint16_t val = values[i];
 
-    float voltage = val * 3.33f / (1 << 12);
+        float voltage = val * 3.33f / (1 << 12);
 
-    // corregir respuesta espectral
-    // float rel_sensitivity[3] = {.75, .95, .24};
-    float rel_sensitivity[3] = {.55, .35, .27};
-    // voltage *= rel_sensitivity[curr_idx];
-    
-    sum += voltage;
+        // corregir respuesta espectral
+        // float rel_sensitivity[3] = {.75, .95, .24};
+        float rel_sensitivity[3] = {.55, .35, .27};
+        // voltage *= rel_sensitivity[curr_idx];
 
-    printf("%04.2f, ", voltage);
+        sum += voltage;
 
-    if (i % 10 == 9)
-      printf("\n");
-  }
+        printf("%04.2f, ", voltage);
 
-  printf("avg: %f\n", sum/count);
+        if (i % 10 == 9)
+            printf("\n");
+    }
+
+    printf("avg: %f\n", sum / count);
 }
 
-void run_sequence(int current_idx, int dma_chan) {
-  int prev_idx = current_idx == 0 
-    ? 2
-    : current_idx - 1;
+// void run_sequence(int current_idx, int dma_chan, uint16_t *buf) {
+//     int prev_idx = current_idx == 0 ? 2 : current_idx - 1;
 
-  gpio_put(led_pins[prev_idx], 0);
-  gpio_put(led_pins[current_idx], 1);
-  sleep_ms(1000);
+//     gpio_put(led_pins[prev_idx], 0);
+//     gpio_put(led_pins[current_idx], 1);
+//     sleep_ms(500);
 
-  uint16_t* buf;
-  switch (current_idx) {
+//     dma_channel_set_write_addr(dma_chan, buf, true);
+//     printf("Starting capture... [%c]\n", colorNames[current_idx]);
+
+//     adc_run(true);
+//     dma_channel_wait_for_finish_blocking(dma_chan);
+
+//     printf("capture finished!\n");
+//     adc_run(false);
+//     adc_fifo_drain();
+
+//     // print_adc_results(buf, ADC_READ_COUNT, current_idx);
+// }
+
+// necesita saber que color esta procesando
+uint8_t process_samples(uint8_t idx) {
+    uint16_t *buf;
+    switch (idx) {
     case R:
-      buf = adc_r_buffer;
-      break;
+        buf = adc_r_buffer;
+        break;
     case G:
-      buf = adc_g_buffer;
-      break;
-    default:
-      buf = adc_b_buffer;
-  }
+        buf = adc_g_buffer;
+        break;
+    case B:
+        buf = adc_b_buffer;
+    }
 
-  dma_channel_set_write_addr(dma_chan, buf, true);
-  printf("Starting capture... [%c]\n", colorNames[current_idx]);
+    float sum = 0;
+    for (int j = 0; j < ADC_READ_COUNT; ++j) {
+        uint16_t val = buf[j];
 
-  adc_run(true);
-  dma_channel_wait_for_finish_blocking(dma_chan);
+        // resistencias medidas con sup negra y blanca
+        // float Rk[3] = {220e3, 410e3, 300e3};
+        // float Rw[3] = {20.6e3, 41.3e3, 32.5e3};
+        // float I = 3e-6;
 
-  printf("capture finished!\n");
-  adc_run(false);
-  adc_fifo_drain();
+        // Vk = I * Rk
+        // float Vk = I * Rk[idx];
+        // float Vw = I * Rw[idx];
+        // float Vk[3], Vw[3];
+        // for (int i = 0; i < 3; i++) {
+        //     Vk[i] = I * Rk[i];
+        //     Vw[i] = I * Rw[i];
+        // }
 
-  print_adc_results(buf, ADC_READ_COUNT, current_idx);
+        // convierto esas tensiones en valores de ADC
+        // float adck = Vk * (1 << 12) / 3.33;
+        // float adcw = Vw * (1 << 12) / 3.33;
+        // uint16_t adck[3], adcw[3];
+        // for (int i = 0; i < 3; i++) {
+        //     adck[i] = Vk[i] * (1 << 12) / 3.33;
+        //     adcw[i] = Vw[i] * (1 << 12) / 3.33;
+        // }
+
+        // limito el valor leido del adc a  los valores de calibracion
+        // float relative = (val - adcw) / (adck - adcw);
+
+        // float hex_val = relative * 255;
+
+        float hex_val = val * (1 << 8) / (1 << 12);
+
+        sum += hex_val;
+
+        // printf("%04.2f, ", voltage);
+
+        // if (j % 10 == 9)
+        //     printf("\n");
+    }
+    uint8_t avg = sum / ADC_READ_COUNT;
+
+    return avg;
 }
+
+int64_t alarm_cb(alarm_id_t id, void *user_data) {
+    adc_run(true);
+    return 0;
+}
+
+void start_adc_sampling() {
+    static int idx = 0;
+    // printf("%d\n", idx);
+
+    // cleanup previous run
+    if (idx > 0) {
+        // printf("stop adc\n");
+        adc_run(false);
+        // printf("drain fifo\n");
+        adc_fifo_drain();
+
+        // printf("prev led off\n");
+        gpio_put(led_pins[idx - 1], 0);
+
+        // uint16_t *prev_buffer = adc_r_buffer;
+        // if (idx == 2) {
+        //     prev_buffer = adc_g_buffer;
+        // } else if (idx == 3) {
+        //     prev_buffer = adc_g_buffer;
+        // }
+
+        uint8_t prev_idx = idx - 1;
+        queue_try_add(&processing_queue, &prev_idx);
+    }
+
+    // printf("ack interr\n");
+    dma_channel_acknowledge_irq0(dma_chan);
+
+    // last iter, shouldn't reset adc
+    if (idx == 3) {
+        idx = 0;
+        return;
+    }
+
+    // printf("set curr led\n");
+    gpio_put(led_pins[idx], 1);
+    // sleep_ms(500);
+
+    uint16_t *buf;
+    switch (idx) {
+    case R:
+        buf = adc_r_buffer;
+        break;
+    case G:
+        buf = adc_g_buffer;
+        break;
+    case B:
+        buf = adc_b_buffer;
+        break;
+    }
+
+    // printf("restart adc + dma\n");
+
+    dma_channel_set_write_addr(dma_chan, buf, true);
+    // defer adc start to alarm
+    add_alarm_in_ms(500, alarm_cb, NULL, true);
+    idx += 1;
+
+    // printf("end\n");
+}
+
+void core1_task();
 
 int main() {
-  stdio_init_all();
+    stdio_init_all();
 
-  sleep_ms(5000);
-  printf("hello world!\n");
-  
-  init_led();
-  
-  // adc test
-  // LCDAdapter_t* adapter = lcd_create(
-  //     configure_pin, set_pin, get_pin, sleep_us,
-  //     LCD_PIN_RS, LCD_PIN_RW, LCD_PIN_ENABLE,
-  //     LCD_PIN_D7,  LCD_PIN_D6,  LCD_PIN_D5,  LCD_PIN_D4
-  // );
-  // lcd_init(adapter);
-  // update_display(adapter, R, 255);
-  // update_display(adapter, G, 0);
-  // update_display(adapter, B, 64);
-      
-  init_adc();
-  sleep_ms(1000);
+    sleep_ms(750);
 
-  // printf("Initial values:\n");
-  // for (int i = 0; i < 10; ++i) {
-  //   printf("%-3d, ", output_buf[i] & 0x0fff);
-  // }
-  // printf("\n\n");
+    multicore_launch_core1(core1_task);
 
-  uint dma_chan = dma_claim_unused_channel(true);
-  dma_channel_config cfg = dma_channel_get_default_config(dma_chan);
-  
-  // channel_config_set_transfer_data_size(&dma_config, DMA_SIZE_8);
-  channel_config_set_transfer_data_size(&cfg, DMA_SIZE_16);
-  channel_config_set_read_increment(&cfg, false);
-  channel_config_set_write_increment(&cfg, true);
+    printf("Initializing LED\n");
+    init_led();
 
-  // The channel uses the transfer request signal to pace its data transfer rate.
-  // pace the transfer rate based on the DREQ triggered by the ADC FIFO
-  // the FIFO was configured to trigger DREQ when 1 sample is present 
-  channel_config_set_dreq(&cfg, DREQ_ADC);
+    printf("Initializing ADC\n");
+    init_adc();
 
-  dma_channel_configure(
-    dma_chan, 
-    &cfg, 
-    adc_r_buffer,   // dst
-    &adc_hw->fifo, // src (the adc FIFO)
-    ADC_READ_COUNT,  // number of transfers
-    false   // start inmediately
-  );
-  
-  int current_idx = 0;
-  while (1) {
-    run_sequence(current_idx, dma_chan);
+    printf("Initializing DMA\n");
+    dma_chan = dma_claim_unused_channel(true);
+    dma_channel_config cfg = dma_channel_get_default_config(dma_chan);
 
-    current_idx++;
-    if (current_idx > 2) {
-      sleep_ms(5000);
-      current_idx = 0;
-      printf("\n\n");
+    // channel_config_set_transfer_data_size(&dma_config, DMA_SIZE_8);
+    channel_config_set_transfer_data_size(&cfg, DMA_SIZE_16);
+    channel_config_set_read_increment(&cfg, false);
+    channel_config_set_write_increment(&cfg, true);
+
+    // The channel uses the transfer request signal to pace its data transfer
+    // rate. pace the transfer rate based on the DREQ triggered by the ADC FIFO
+    // the FIFO was configured to trigger DREQ when 1 sample is present
+    channel_config_set_dreq(&cfg, DREQ_ADC);
+
+    dma_channel_configure(dma_chan, &cfg,
+                          adc_r_buffer,   // dst
+                          &adc_hw->fifo,  // src (the adc FIFO)
+                          ADC_READ_COUNT, // number of transfers
+                          false           // start inmediately
+    );
+
+    // Tell the DMA to raise IRQ line 0 when the channel finishes a block
+    dma_channel_set_irq1_enabled(dma_chan, true);
+
+    // Configure the processor to run handler when DMA IRQ 0 is asserted
+    irq_set_exclusive_handler(DMA_IRQ_1, start_adc_sampling);
+    irq_set_enabled(DMA_IRQ_1, true);
+
+    printf("core0 is waiting...\n");
+    if (multicore_fifo_pop_blocking() != FLAG) {
+        printf("sync mismatch, exiting...\n");
+        return 1;
     }
-  }
-  
-  // uint gpio_mask = 1 << led_pins[0] | 1 << led_pins[1] | 1 << led_pins[2];
-  // gpio_init_mask(gpio_mask);
-  // gpio_set_dir_out_masked(gpio_mask);
+    printf("core1 server is up, core0 starts running...\n");
 
-  // while (1) {
-  //   // for (int i=0; i<3; i++) {
-  //   //     gpio_put(led_pins[i], 1);
-  //   //     sleep_ms(500);
-  //   //     gpio_put(led_pins[i], 0);
-  //   // }
-  //   printf("led on\n");
-  //   cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 1);
-  //   sleep_ms(500);
-  //   printf("led off\n");
-  //   cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 0);
-  //   sleep_ms(500);    
-  // }
-  while(1) {}
+    queue_init(&processing_queue, sizeof(uint8_t), 3);
 
-  return 0;
+    while (1) {
+        sem_acquire_blocking(&trigger_sem);
+
+        start_adc_sampling();
+
+        uint32_t measurement = 0;
+        for (int i = 0; i < 3; i++) {
+            printf("Waiting for samples...\n");
+
+            uint8_t idx;
+            queue_remove_blocking(&processing_queue, &idx);
+
+            printf("Processing samples (%c)\n", colorNames[idx]);
+            uint8_t result = process_samples(idx);
+            printf("Result (avg): %02X\n", result);
+
+            // armo el codigo hexa en base a las mediciones
+            measurement |= result << (8 * idx);
+        }
+
+        // printf("exit for loop\n");
+        queue_try_add(&data_queue, &measurement);
+        printf("measure was %06X\n", measurement);
+
+        // for (int i = 0; i < 3; i++) {
+        //     uint16_t *buf;
+        //     switch (current_idx) {
+        //     case R:
+        //         buf = adc_r_buffer;
+        //         break;
+        //     case G:
+        //         buf = adc_g_buffer;
+        //         break;
+        //     default:
+        //         buf = adc_b_buffer;
+        //     }
+
+        //     run_sequence(i, dma_chan, buf);
+        // }
+    }
+
+    return 0;
+}
+
+void core1_task() {
+    if (web_server_init(&data_queue, &trigger_sem)) {
+        return;
+    }
+    // envia un valor arbitrario al nucleo0 indicando que el servidor inicio
+    multicore_fifo_push_blocking(FLAG);
+
+    web_server_poll();
 }

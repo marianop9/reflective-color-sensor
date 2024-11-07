@@ -16,7 +16,6 @@ semaphore_t trigger_sem;
 queue_t q;
 
 void core1_main() {
-    // refactorizar para que reciba el semaforo y cola desde la aplicación principal
     web_server_init(&q, &trigger_sem);
 
     // envia un valor arbitrario al nucleo0 indicando que el servidor inicio

@@ -7,7 +7,6 @@ target_include_directories(cs_web_server
 
 target_link_libraries(cs_web_server
     pico_stdlib
-    pico_multicore
     pico_util
     pico_cyw43_arch_lwip_poll
     pico_lwip_http
