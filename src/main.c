@@ -154,6 +154,15 @@ void print_adc_results(uint16_t *values, int count, int curr_idx) {
 uint8_t process_samples(uint8_t idx) {
     uint16_t *buf = get_buffer(idx);
 
+    // 50*2 numeros hexa (2 caracteres)
+    // 49 (50-1) comas
+    //  2 corchetes
+    //  1 retorno '\n'
+    //  1 null termination '\0'
+    char strbuf[ADC_READ_COUNT*2 + ADC_READ_COUNT-1 + 4];
+    int offset = 0;
+    offset += snprintf(strbuf, sizeof(strbuf), "[");
+
     float sum = 0;
     for (int j = 0; j < ADC_READ_COUNT; ++j) {
         uint16_t val = buf[j];
@@ -201,12 +210,20 @@ uint8_t process_samples(uint8_t idx) {
 
         sum += hex_val;
 
+        offset += snprintf(strbuf + offset, sizeof(strbuf) - offset, "%02X", (uint16_t)hex_val);
+        if (j < ADC_READ_COUNT - 1) { // Add comma between elements
+            offset += snprintf(strbuf + offset, sizeof(strbuf) - offset, ",");
+        }
+
         // printf("%04.2f, ", voltage);
 
         // if (j % 10 == 9)
         //     printf("\n");
     }
     uint8_t avg = sum / ADC_READ_COUNT;
+
+    snprintf(strbuf + offset, sizeof(strbuf) - offset, "]\n");
+    printf("%s", strbuf);
 
     return avg;
 }

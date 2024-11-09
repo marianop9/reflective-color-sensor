@@ -115,7 +115,7 @@ int web_server_init(queue_t *pdata_queue, semaphore_t *ptrigger_sem) {
 
     cyw43_arch_enable_sta_mode();
 
-    printf("connecting to %s\n", WIFI_SSID);
+    printf("connecting to \"%s\" - \"%s\"\n", WIFI_SSID, WIFI_PASSWORD);
     if (cyw43_arch_wifi_connect_timeout_ms(WIFI_SSID, WIFI_PASSWORD,
                                            CYW43_AUTH_WPA2_AES_PSK, 10000)) {
         printf("failed to connect\n");

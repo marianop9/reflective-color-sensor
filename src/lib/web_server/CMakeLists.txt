@@ -40,6 +40,7 @@ pico_set_lwip_httpd_content(httpd_content INTERFACE
 add_executable(example_server example_server.c)
 
 target_link_libraries(example_server 
+    pico_multicore
     cs_web_server
 )
 
