@@ -1,7 +1,7 @@
 add_subdirectory(lib/lcd)
 add_subdirectory(lib/web_server)
 
-add_executable(sensor main.c)
+add_executable(sensor main.c filter.c)
 
 target_link_libraries(sensor
     pico_stdlib

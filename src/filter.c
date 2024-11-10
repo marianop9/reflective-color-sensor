@@ -1,18 +1,20 @@
-#include <stdio.h>
+#include "filter.h"
+
+// Butterworth LP filter - Sample frequency fs=500 Hz
 
 // Define the filter order
-#define FILTER_ORDER 4
+#define FILTER_ORDER 2
 
 // Filter coefficients (hard-coded for this specific filter)
-const double b[FILTER_ORDER + 1] = {9.00578213e-07, 3.60231285e-06, 5.40346928e-06, 3.60231285e-06, 9.00578213e-07};
-const double a[FILTER_ORDER + 1] = {1.0, -3.83572813, 5.52054268, -3.53327341, 0.84847328};
+const float b[FILTER_ORDER + 1] = {0.00362991, 0.00725982, 0.00362991};
+const float a[FILTER_ORDER + 1] = {1., -1.82248576, 0.8370054};
 
 // Buffers for previous input and output values
-double x_buffer[FILTER_ORDER + 1] = {0.0};
-double y_buffer[FILTER_ORDER + 1] = {0.0};
+float x_buffer[FILTER_ORDER + 1] = {0.};
+float y_buffer[FILTER_ORDER + 1] = {0.};
 
 // Function to apply the Butterworth filter to a single sample
-double butterworth_filter(double input) {
+float butterworth_filter(float input) {
     // Shift previous inputs and outputs to the right
     for (int i = FILTER_ORDER; i > 0; i--) {
         x_buffer[i] = x_buffer[i - 1];
@@ -22,7 +24,7 @@ double butterworth_filter(double input) {
     x_buffer[0] = input;
 
     // Compute the current output using the difference equation
-    double output = 0.0;
+    float output = 0.0;
     for (int i = 0; i <= FILTER_ORDER; i++) {
         output += b[i] * x_buffer[i];
     }
@@ -36,8 +38,14 @@ double butterworth_filter(double input) {
     return output;
 }
 
-void apply_filter(double* inputs, double* outputs, int input_count) {
-    for (int i=0; i < input_count; i++) {
-        outputs[i] = butterworth_filter(inputs[i]);
+void apply_filter(uint16_t *inputs, uint16_t *outputs, int input_count) {
+    // clear buffers
+    for (int i = 0; i < FILTER_ORDER + 1; i++) {
+        x_buffer[i] = 0.f;
+        y_buffer[i] = 0.f;
+    }
+
+    for (int i = 0; i < input_count; i++) {
+        outputs[i] = (uint16_t)butterworth_filter((float)inputs[i]);
     }
 }

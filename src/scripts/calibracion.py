@@ -1,6 +1,5 @@
 import numpy as np
 
-
 # resistencias
 Rw = np.array([20.15e3, 38.5e3, 25.5e3])
 Rk = np.array([180e3, 450e3, 243e3])

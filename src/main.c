@@ -1,3 +1,4 @@
+#include "filter.h"
 #include "web_server.h"
 
 #include "hardware/adc.h"
@@ -28,7 +29,7 @@ int led_pins[3] = {LED_PIN_R, LED_PIN_G, LED_PIN_B};
 enum Colors { R = 0, G, B };
 char colorNames[] = {'R', 'G', 'B'};
 
-#define ADC_READ_COUNT 50
+#define ADC_READ_COUNT 100
 uint16_t adc_r_buffer[ADC_READ_COUNT];
 uint16_t adc_g_buffer[ADC_READ_COUNT];
 uint16_t adc_b_buffer[ADC_READ_COUNT];
@@ -92,9 +93,12 @@ void init_adc() {
 
     // adc starts a conversion every clkdiv + 1 clock cycles
     // adc is paced by 48 MHz clock
-    // adc should sample every 47999 + 1 = 48000 cycles -> sample freq is 1ksps
-    // ===> fs = 1 kHz
-    adc_set_clkdiv(47999);
+    // adc should sample every x + 1 cycles
+    // for x=47999 -> clkdiv=x+1=48e3 -> sample freq is 1ksps -> fs = 1 kHz
+    const int fs = 500;
+    const int div = (48000000 / fs) - 1;
+
+    adc_set_clkdiv(div);
     adc_fifo_setup(
         true,  // Write each completed conversion to the sample FIFO
         true,  // Enable DMA data request (DREQ)
@@ -150,80 +154,70 @@ void print_adc_results(uint16_t *values, int count, int curr_idx) {
 //     // print_adc_results(buf, ADC_READ_COUNT, current_idx);
 // }
 
+float convert_adc_hex(uint8_t idx, uint16_t val) {
+    // valores de ADC para sup blanca y negra
+    // float adck[3] = {812, 1513, 1107};
+    // float adcw[3] = {76, 152, 120};
+    float adck[3] = {664, 1660, 897};
+    float adcw[3] = {74, 142, 94};
+
+    // limito el valor leido del adc a  los valores de calibracion
+    if (val < adcw[idx]) {
+        val = adcw[idx];
+    } else if (val > adck[idx]) {
+        val = adck[idx];
+    }
+
+    float relative = (adck[idx] - val) / (adck[idx] - adcw[idx]);
+    return relative * 255.f;
+}
+
 // necesita saber que color esta procesando
 uint8_t process_samples(uint8_t idx) {
-    uint16_t *buf = get_buffer(idx);
+    uint16_t *raw_data = get_buffer(idx);
 
-    // 50*2 numeros hexa (2 caracteres)
-    // 49 (50-1) comas
+    // aplicar filtro
+    uint16_t filtered_data[ADC_READ_COUNT];
+    apply_filter(raw_data, filtered_data, ADC_READ_COUNT);
+
+    // de los datos filtrados descartamos los primeros x valores, ya que antes de ese punto la salida no se estabilizo
+    const int adc_offset = 60;
+
+    // ADC_READ_COUNT * 2 valores (cada numero tiene siempre 2 caracteres)
+    // ADC_READ_COUNT - 1 comas
     //  2 corchetes
     //  1 retorno '\n'
     //  1 null termination '\0'
-    char strbuf[ADC_READ_COUNT*2 + ADC_READ_COUNT-1 + 4];
-    int offset = 0;
-    offset += snprintf(strbuf, sizeof(strbuf), "[");
+
+    char raw_buf[ADC_READ_COUNT * 2 + ADC_READ_COUNT - 1 + 4] = {'['};
+    char filtered_buf[ADC_READ_COUNT * 2 + ADC_READ_COUNT - 1 + 4] = {'['};
+    int strbuf_offset = 1;
 
     float sum = 0;
     for (int j = 0; j < ADC_READ_COUNT; ++j) {
-        uint16_t val = buf[j];
+        float hex_val_raw = convert_adc_hex(idx, raw_data[j]);
 
-        // resistencias medidas con sup negra y blanca
-        // float Rk[3] = {220e3, 410e3, 300e3};
-        // float Rw[3] = {20.6e3, 41.3e3, 32.5e3};
-        // float I = 3e-6;
+        float hex_val = convert_adc_hex(idx, filtered_data[j]);
 
-        // Vk = I * Rk
-        // float Vk = I * Rk[idx];
-        // float Vw = I * Rw[idx];
-        // float Vk[3], Vw[3];
-        // for (int i = 0; i < 3; i++) {
-        //     Vk[i] = I * Rk[i];
-        //     Vw[i] = I * Rw[i];
-        // }
-
-        // convierto esas tensiones en valores de ADC
-        // float adck = Vk * (1 << 12) / 3.33;
-        // float adcw = Vw * (1 << 12) / 3.33;
-        // uint16_t adck[3], adcw[3];
-        // for (int i = 0; i < 3; i++) {
-        //     adck[i] = Vk[i] * (1 << 12) / 3.33;
-        //     adcw[i] = Vw[i] * (1 << 12) / 3.33;
-        // }
-
-        // valores de ADC para sup blanca y negra
-        // float adck[3] = {812, 1513, 1107};
-        // float adcw[3] = {76, 152, 120};
-        float adck[3] = {664, 1660, 897};
-        float adcw[3] = {74, 142, 94};
-
-        // limito el valor leido del adc a  los valores de calibracion
-        if (val < adcw[idx]) {
-            val = adcw[idx];
-        } else if (val > adck[idx]) {
-            val = adck[idx];
-        }
-        
-        float relative = (adck[idx] - val) / (adck[idx] - adcw[idx]);
-        float hex_val = relative * 255;
-
-        // float hex_val = val * (1 << 8) / (1 << 12);
-
-        sum += hex_val;
-
-        offset += snprintf(strbuf + offset, sizeof(strbuf) - offset, "%02X", (uint16_t)hex_val);
-        if (j < ADC_READ_COUNT - 1) { // Add comma between elements
-            offset += snprintf(strbuf + offset, sizeof(strbuf) - offset, ",");
+        // solo se promedian los valores a partir de adc_offset
+        if (j >= adc_offset) {
+            sum += hex_val;
         }
 
-        // printf("%04.2f, ", voltage);
-
-        // if (j % 10 == 9)
-        //     printf("\n");
+        sprintf(raw_buf + strbuf_offset, "%02X", (uint16_t)hex_val_raw);
+        strbuf_offset += sprintf(filtered_buf + strbuf_offset, "%02X", (uint16_t)hex_val);
+        // Add comma between elements
+        if (j < ADC_READ_COUNT - 1) {
+            sprintf(raw_buf + strbuf_offset, ",");
+            strbuf_offset += sprintf(filtered_buf + strbuf_offset, ",");
+        }
     }
-    uint8_t avg = sum / ADC_READ_COUNT;
+    uint8_t avg = sum / (ADC_READ_COUNT - adc_offset);
 
-    snprintf(strbuf + offset, sizeof(strbuf) - offset, "]\n");
-    printf("%s", strbuf);
+    sprintf(raw_buf + strbuf_offset, "]\n");
+    sprintf(filtered_buf + strbuf_offset, "]\n");
+    // envia los valores por puerto serie
+    printf("%s %s", raw_buf, filtered_buf);
 
     return avg;
 }
@@ -351,7 +345,7 @@ int main() {
             printf("Result (avg): %02X\n", result);
 
             // armo el codigo hexa en base a las mediciones
-            measurement |= result << (8 * idx);
+            measurement |= result << (8 * (2-idx));
         }
 
         // printf("exit for loop\n");
