@@ -179,7 +179,7 @@
             const data = await resp.json()
 
             if (data.hexcode) {
-                setHexcode(data.hexcode)
+                setHexcode(0, data.hexcode)
             }
         }
 

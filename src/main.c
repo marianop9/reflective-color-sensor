@@ -156,9 +156,13 @@ void print_adc_results(uint16_t *values, int count, int curr_idx) {
 
 float convert_adc_hex(uint8_t idx, uint16_t val) {
     // valores de ADC para sup blanca y negra
-    // float adck[3] = {812, 1513, 1107};
-    // float adcw[3] = {76, 152, 120};
-    float adck[3] = {664, 1660, 897};
+
+    // medidos por el ADC
+    float adck[3] = {3046/3, 3200/3, 2421/3};
+    // float adcw[3] = {127, 174, 172};
+
+    // medidos a mano
+    // float adck[3] = {664, 1660, 897};
     float adcw[3] = {74, 142, 94};
 
     // limito el valor leido del adc a  los valores de calibracion
@@ -181,7 +185,7 @@ uint8_t process_samples(uint8_t idx) {
     apply_filter(raw_data, filtered_data, ADC_READ_COUNT);
 
     // de los datos filtrados descartamos los primeros x valores, ya que antes de ese punto la salida no se estabilizo
-    const int adc_offset = 60;
+    const int adc_offset = 70;
 
     // ADC_READ_COUNT * 2 valores (cada numero tiene siempre 2 caracteres)
     // ADC_READ_COUNT - 1 comas
