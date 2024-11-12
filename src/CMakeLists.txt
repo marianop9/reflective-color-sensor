@@ -16,3 +16,18 @@ pico_enable_stdio_usb(sensor 1)
 pico_enable_stdio_uart(sensor 0)
 
 pico_add_extra_outputs(sensor)
+
+add_executable(calibracion calibracion.c filter.c)
+
+target_link_libraries(calibracion
+    pico_stdlib
+    hardware_adc
+    hardware_dma
+    pico_multicore
+    cs_web_server
+)
+
+pico_enable_stdio_usb(calibracion 1)
+pico_enable_stdio_uart(calibracion 0)
+
+pico_add_extra_outputs(calibracion)
