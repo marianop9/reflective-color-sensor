@@ -1,0 +1,4 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "raspberry_pi_pico_w")(type "KiCad")(uri "${KIPRJMOD}/../picow_footprints/raspberry_pi_pico_w.kicad_sym")(options "")(descr "pico_w symbol"))
+)

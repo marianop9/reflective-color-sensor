@@ -1,7 +1,0 @@
-{
-    "files.associations": {
-        "*.h": "c"
-    },
-    "C_Cpp.clang_format_style": "{ BaseOnStyle: Google, IndentWidth: 4 }",
-    "C_Cpp.formatting": "default",
-}
