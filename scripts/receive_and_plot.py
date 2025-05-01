@@ -1,3 +1,14 @@
+"""
+Recibe datos de medicion de cada color por puerto serie y los grafica.
+
+Primero, recibe las mediciones de cada canal (rojo, verde y azul) sin filtrar, 
+y luego las mismas mediciones luego de aplicar un filtro digital pasa-bajos.
+
+El script se configuró para ser ejecutado desde WSL, habiendo configurado previamente 
+el acceso y habilitado el acceso desde WSL mediante usbipd-win 
+(https://github.com/dorssel/usbipd-win)
+"""
+
 import serial
 from matplotlib.axes import Axes
 import matplotlib.pyplot as plt
