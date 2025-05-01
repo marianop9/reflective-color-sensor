@@ -13,4 +13,4 @@ El sistema utiliza un sensor LDR para medir la intensidad de la luz reflejada po
 - Diseño modular que permite experimentar con diferentes configuraciones de iluminación.
 - Código abierto y documentado para fines educativos.
 
-![funcionamiento del sensor](informe\informe_tp_integrador_2024\img\resultados_sensor.png)
+![funcionamiento del sensor](informe/informe_tp_integrador_2024/img/resultados_sensor.png)
