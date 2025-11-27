@@ -1,5 +1,9 @@
+.vscode
+
 build
 .cache
+
+__pycache__
 
 # FreeCAD backups
 *.FCBak
