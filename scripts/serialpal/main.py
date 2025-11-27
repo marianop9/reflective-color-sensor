@@ -1,4 +1,4 @@
-from serial_pal import SerialPal
+from serialpal import SerialPal
 
 
 def main():
