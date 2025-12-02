@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.13...3.27)
 set(PICO_BOARD pico_w)
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 
-include(pico-sdk/pico_sdk_init.cmake)
+include(external/pico-sdk/pico_sdk_init.cmake)
 
 project(color-sensor C CXX ASM)
 

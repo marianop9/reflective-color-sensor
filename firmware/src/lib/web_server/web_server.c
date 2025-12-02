@@ -13,6 +13,10 @@
 
 #define FLAG 99
 
+#if !defined(WIFI_SSID) || !defined(WIFI_PASSWORD)
+    #error "No Wi-Fi SSID/Password is set"
+#endif
+
 // replaced with semaphore
 // volatile bool triggered = false;
 semaphore_t *_trigger_sem;
