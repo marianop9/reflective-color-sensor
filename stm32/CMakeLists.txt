@@ -66,3 +66,16 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
 
     # Add user defined libraries
 )
+
+add_custom_command(
+    TARGET ${CMAKE_PROJECT_NAME}
+    POST_BUILD
+    COMMAND arm-none-eabi-objcopy.exe -O binary 
+        ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME}.elf 
+        ${CMAKE_PROJECT_NAME}.bin
+    COMMENT "Generating bin file"
+)
+
+add_custom_target(RUN_st-flash 
+    st-flash --reset write ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME}.bin 0x8000000
+)
