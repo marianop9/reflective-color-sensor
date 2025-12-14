@@ -31,51 +31,15 @@ message("Build type: " ${CMAKE_BUILD_TYPE})
 # Enable CMake support for ASM and C languages
 enable_language(C ASM)
 
-# Create an executable object type
-add_executable(${CMAKE_PROJECT_NAME})
+# Include CTest
+option(BUILD_TESTING OFF)
+include(CTest)
 
-# Add STM32CubeMX generated sources
-add_subdirectory(cmake/stm32cubemx)
+add_subdirectory(lib/cs_usb_comms)
 
-# Link directories setup
-target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
-    # Add user defined library search paths
-)
-
-# Add sources to executable
-target_sources(${CMAKE_PROJECT_NAME} PRIVATE
-    # Add user sources here
-)
-
-# Add include paths
-target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
-    # Add user defined include paths
-)
-
-# Add project symbols (macros)
-target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
-    # Add user defined symbols
-)
-
-# Remove wrong libob.a library dependency when using cpp files
-list(REMOVE_ITEM CMAKE_C_IMPLICIT_LINK_LIBRARIES ob)
-
-# Add linked libraries
-target_link_libraries(${CMAKE_PROJECT_NAME}
-    stm32cubemx
-
-    # Add user defined libraries
-)
-
-add_custom_command(
-    TARGET ${CMAKE_PROJECT_NAME}
-    POST_BUILD
-    COMMAND arm-none-eabi-objcopy.exe -O binary 
-        ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME}.elf 
-        ${CMAKE_PROJECT_NAME}.bin
-    COMMENT "Generating bin file"
-)
-
-add_custom_target(RUN_st-flash 
-    st-flash --reset write ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME}.bin 0x8000000
-)
+if(CMAKE_CROSSCOMPILING)
+    include(cmake/firmware.cmake)
+else()
+    enable_testing()
+    add_subdirectory(tests)
+endif(CMAKE_CROSSCOMPILING)
