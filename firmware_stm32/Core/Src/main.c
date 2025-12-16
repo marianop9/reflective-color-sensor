@@ -50,12 +50,15 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+ADC_HandleTypeDef hadc1;
+DMA_HandleTypeDef hdma_adc1;
+
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
     .name = "defaultTask",
     .stack_size = 128 * 4,
-    .priority = (osPriority_t)osPriorityNormal,
+    .priority = (osPriority_t)osPriorityAboveNormal,
 };
 /* USER CODE BEGIN PV */
 TaskHandle_t task_handle_usb_receiver;
@@ -69,6 +72,8 @@ QueueHandle_t q_usb_send_queue;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
+static void MX_ADC1_Init(void);
 void StartDefaultTask(void *argument);
 
 /* USER CODE BEGIN PFP */
@@ -118,6 +123,8 @@ int main(void)
 
     /* Initialize all configured peripherals */
     MX_GPIO_Init();
+    MX_DMA_Init();
+    MX_ADC1_Init();
     /* USER CODE BEGIN 2 */
 
     /* USER CODE END 2 */
@@ -224,12 +231,74 @@ void SystemClock_Config(void)
     {
         Error_Handler();
     }
-    PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USB;
+    PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_ADC | RCC_PERIPHCLK_USB;
+    PeriphClkInit.AdcClockSelection = RCC_ADCPCLK2_DIV6;
     PeriphClkInit.UsbClockSelection = RCC_USBCLKSOURCE_PLL_DIV1_5;
     if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
     {
         Error_Handler();
     }
+}
+
+/**
+ * @brief ADC1 Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_ADC1_Init(void)
+{
+
+    /* USER CODE BEGIN ADC1_Init 0 */
+
+    /* USER CODE END ADC1_Init 0 */
+
+    ADC_ChannelConfTypeDef sConfig = {0};
+
+    /* USER CODE BEGIN ADC1_Init 1 */
+
+    /* USER CODE END ADC1_Init 1 */
+
+    /** Common config
+     */
+    hadc1.Instance = ADC1;
+    hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
+    hadc1.Init.ContinuousConvMode = DISABLE;
+    hadc1.Init.DiscontinuousConvMode = DISABLE;
+    hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+    hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+    hadc1.Init.NbrOfConversion = 1;
+    if (HAL_ADC_Init(&hadc1) != HAL_OK)
+    {
+        Error_Handler();
+    }
+
+    /** Configure Regular Channel
+     */
+    sConfig.Channel = ADC_CHANNEL_2;
+    sConfig.Rank = ADC_REGULAR_RANK_1;
+    sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
+    if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+    {
+        Error_Handler();
+    }
+    /* USER CODE BEGIN ADC1_Init 2 */
+
+    /* USER CODE END ADC1_Init 2 */
+}
+
+/**
+ * Enable DMA controller clock
+ */
+static void MX_DMA_Init(void)
+{
+
+    /* DMA controller clock enable */
+    __HAL_RCC_DMA1_CLK_ENABLE();
+
+    /* DMA interrupt init */
+    /* DMA1_Channel1_IRQn interrupt configuration */
+    HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 5, 0);
+    HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
 }
 
 /**
@@ -288,16 +357,16 @@ void task_usb_receiver(void *arg)
         if (available_bytes == 0)
         {
             /* If the buffer is full (no free bytes), no bytes will be written in the next
-            xStreamBufferReceive call. After this, no further updates will be triggered. 
+            xStreamBufferReceive call. After this, no further updates will be triggered.
             The only way this can happen is if the host sends garbage, or sends multiple commands without ending in a line-feed (\n). The buffer is cleared to avoid this. */
             cs_clear_cmd_buffer();
             available_bytes = cs_get_free_cmd_buffer_len();
         }
 
         received_bytes = xStreamBufferReceive(sb_usb_recv_buffer,
-                                 (void *)cs_get_free_cmd_buffer(),
-                                 available_bytes,
-                                 portMAX_DELAY);
+                                              (void *)cs_get_free_cmd_buffer(),
+                                              available_bytes,
+                                              portMAX_DELAY);
 
         if (received_bytes == 0)
         {
@@ -413,7 +482,7 @@ void StartDefaultTask(void *argument)
     {
         osDelay(pdMS_TO_TICKS(1000));
         // shwm = uxTaskGetStackHighWaterMark(NULL);
-        // (void) shwm;
+    // (void) shwm;
     }
     /* USER CODE END 5 */
 }
