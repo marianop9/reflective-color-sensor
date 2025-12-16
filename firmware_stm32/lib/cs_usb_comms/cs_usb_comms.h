@@ -8,6 +8,7 @@ typedef enum
 {
     CMD_ERR = 0,
     CMD_PING,
+    CMD_MEM,
     CMD_TOGGLE_LED,
 } cs_command_id;
 
@@ -19,7 +20,7 @@ typedef enum
 
 typedef union
 {
-    char text[16]; // simple text responses: OK, PONG, etc
+    char text[32]; // simple text responses: OK, PONG, etc
 } cs_response_payload;
 
 typedef struct
@@ -35,9 +36,9 @@ void cs_updated_cmd_buffer(size_t bytes_read);
 
 size_t cs_get_cmd_buffer_len();
 
-char *cs_get_remaining_cmd_buffer();
+char *cs_get_free_cmd_buffer();
 
-size_t cs_get_remaining_cmd_buffer_len();
+size_t cs_get_free_cmd_buffer_len();
 
 bool cs_check_for_command(cs_command_id *out_cmd);
 

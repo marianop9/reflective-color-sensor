@@ -8,6 +8,7 @@ port_settings = dict(
     parity=serial.PARITY_NONE,
     stopbits=serial.STOPBITS_ONE,
     bytesize=serial.EIGHTBITS,
+    timeout = 3,
 )
 
 
@@ -97,3 +98,5 @@ class SerialPal(cmd.Cmd):
         n = SerialPal.port.write(cmd)
         status = "OK" if n == len(cmd) else "ERR"
         print(f"{status} ({n})")
+
+        self.do_recv(None)

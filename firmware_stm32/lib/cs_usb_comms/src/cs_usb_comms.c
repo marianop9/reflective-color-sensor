@@ -37,13 +37,13 @@ size_t cs_get_cmd_buffer_len()
 }
 
 /* Returns a pointer to the current position in the buffer*/
-char *cs_get_remaining_cmd_buffer()
+char *cs_get_free_cmd_buffer()
 {
     return (_cmd_buffer + _cmd_buffer_len);
 }
 
 /* Returns the remaining bytes left in the buffer, starting from the current position*/
-size_t cs_get_remaining_cmd_buffer_len()
+size_t cs_get_free_cmd_buffer_len()
 {
     return (CMD_BUFFER_MAX_LEN - _cmd_buffer_len);
 }
@@ -110,17 +110,22 @@ cs_command_id cs_parse_cmd()
         This function should be called after `cs_find_cmd`, which null-terminates
         the found command.
     */ 
+    cs_command_id cmd = CMD_ERR;
 
     if (0 == strncmp(str, "PING", len))
     {
-        return CMD_PING;
+        cmd = CMD_PING;
     }
-    if (0 == strncmp(str, "TOGGLE_LED", len))
+    else if (0 == strncmp(str, "TOGGLE_LED", len))
     {
-        return CMD_TOGGLE_LED;
+        cmd = CMD_TOGGLE_LED;
+    }
+    else if (0 == strncmp(str, "MEM", len))
+    {
+        cmd = CMD_MEM;
     }
 
-    return CMD_ERR;
+    return cmd;
 }
 
 /* Shift the contents of the buffer to the start of the buffer, starting from 

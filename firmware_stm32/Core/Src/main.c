@@ -38,9 +38,10 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define CMD_BUFFER_MAX_LEN 32
+// default priority for tasks (matches the priority used by the default task)
 #define CS_DEFAULT_PRIORITY (osPriorityNormal)
-
+// USB StreamBuffer capacity. Data received via USB is copied into this buffer
+#define SB_USB_BUFFER_CAPACITY 64
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -57,6 +58,9 @@ const osThreadAttr_t defaultTask_attributes = {
     .priority = (osPriority_t)osPriorityNormal,
 };
 /* USER CODE BEGIN PV */
+TaskHandle_t task_handle_usb_receiver;
+TaskHandle_t task_handle_usb_sender;
+
 StreamBufferHandle_t sb_usb_recv_buffer;
 QueueHandle_t q_usb_send_queue;
 
@@ -135,7 +139,7 @@ int main(void)
 
     /* USER CODE BEGIN RTOS_QUEUES */
     q_usb_send_queue = xQueueCreate(2, sizeof(cs_response_msg));
-    sb_usb_recv_buffer = xStreamBufferCreate(64, 1);
+    sb_usb_recv_buffer = xStreamBufferCreate(SB_USB_BUFFER_CAPACITY, 1);
     /* USER CODE END RTOS_QUEUES */
 
     /* Create the thread(s) */
@@ -146,19 +150,19 @@ int main(void)
     BaseType_t created;
     created = xTaskCreate(task_usb_sender,
                           "senderTask",
-                          configMINIMAL_STACK_SIZE,
+                          configMINIMAL_STACK_SIZE * 2,
                           NULL,
                           CS_DEFAULT_PRIORITY,
-                          NULL);
+                          &task_handle_usb_sender);
 
     configASSERT(pdPASS == created);
 
     created = xTaskCreate(task_usb_receiver,
                           "recvTask",
-                          configMINIMAL_STACK_SIZE * 3,
+                          configMINIMAL_STACK_SIZE * 2,
                           NULL,
                           CS_DEFAULT_PRIORITY,
-                          NULL);
+                          &task_handle_usb_receiver);
 
     configASSERT(pdPASS == created);
     /* USER CODE END RTOS_THREADS */
@@ -265,7 +269,9 @@ void usb_recv_ISR(uint8_t *buf, uint32_t len)
 {
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
-    xStreamBufferSendFromISR(sb_usb_recv_buffer, buf, len,
+    xStreamBufferSendFromISR(sb_usb_recv_buffer,
+                             buf,
+                             len,
                              &xHigherPriorityTaskWoken);
 
     portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
@@ -273,53 +279,67 @@ void usb_recv_ISR(uint8_t *buf, uint32_t len)
 
 void task_usb_receiver(void *arg)
 {
+    size_t available_bytes = 0;
+    size_t received_bytes = 0;
+    cs_command_id cmd = CMD_ERR;
     for (;;)
     {
-        size_t n = xStreamBufferReceive(sb_usb_recv_buffer,
-                                        (void *)cs_get_remaining_cmd_buffer(),
-                                        cs_get_remaining_cmd_buffer_len(),
-                                        portMAX_DELAY);
+        available_bytes = cs_get_free_cmd_buffer_len();
+        if (available_bytes == 0)
+        {
+            /* If the buffer is full (no free bytes), no bytes will be written in the next
+            xStreamBufferReceive call. After this, no further updates will be triggered. 
+            The only way this can happen is if the host sends garbage, or sends multiple commands without ending in a line-feed (\n). The buffer is cleared to avoid this. */
+            cs_clear_cmd_buffer();
+            available_bytes = cs_get_free_cmd_buffer_len();
+        }
 
-        if (n == 0)
+        received_bytes = xStreamBufferReceive(sb_usb_recv_buffer,
+                                 (void *)cs_get_free_cmd_buffer(),
+                                 available_bytes,
+                                 portMAX_DELAY);
+
+        if (received_bytes == 0)
         {
             continue;
         }
 
-        cs_updated_cmd_buffer(n);
-
-        cs_command_id cmd;
+        cs_updated_cmd_buffer(received_bytes);
 
         if (!cs_check_for_command(&cmd))
         {
             continue;
         }
 
-        // cs_response_msg resp;
-
+        cs_response_msg resp;
         switch (cmd)
         {
         case CMD_TOGGLE_LED:
             HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-            // resp.id = RESP_TEXT;
-            // resp.payload = (cs_response_payload){
-            //     .text = "OK"
-            // };
-            // cs_usb_send_blocking(&resp);
+            resp.id = RESP_TEXT;
+            strcpy(resp.payload.text, "OK\n");
             break;
         case CMD_PING:
-        {
-            cs_response_msg resp = {.id = RESP_TEXT, .payload.text = "PONG"};
-            xQueueSend(q_usb_send_queue, &resp, portMAX_DELAY);
+            resp.id = RESP_TEXT;
+            strcpy(resp.payload.text, "PONG\n");
             break;
-        }
+        case CMD_MEM:
+            UBaseType_t receiver_stack_free_words = uxTaskGetStackHighWaterMark(NULL);
+            UBaseType_t sender_stack_free_words = uxTaskGetStackHighWaterMark(task_handle_usb_sender);
+
+            resp.id = RESP_TEXT;
+            snprintf(resp.payload.text,
+                     sizeof(resp.payload.text),
+                     "Rcvr:%3lu, Sndr:%3lu\n", receiver_stack_free_words, sender_stack_free_words);
+            break;
         case CMD_ERR:
         default:
-        {
-            cs_response_msg resp = {.id = RESP_ERR, .payload.text = "unknown cmd"};
-            xQueueSend(q_usb_send_queue, &resp, portMAX_DELAY);
+            resp.id = RESP_TEXT;
+            strcpy(resp.payload.text, "unknown cmd\n");
             break;
         }
-        }
+
+        xQueueSend(q_usb_send_queue, &resp, portMAX_DELAY);
     }
 }
 
