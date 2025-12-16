@@ -4,29 +4,29 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-typedef enum
-{
-    CMD_ERR = 0,
-    CMD_PING,
-    CMD_MEM,
-    CMD_TOGGLE_LED,
-} cs_command_id;
+#define CS_RESPONSE_PAYLOAD_MAX_BYTES 32
 
 typedef enum
 {
-    RESP_ERR = 0,
-    RESP_TEXT,
-} cs_response_id;
+    CS_COMMAND_ERR = 0,
+    CS_COMMAND_PING,
+    CS_COMMAND_MEM,
+    CS_COMMAND_TOGGLE_LED,
+    CS_COMMAND_ADC,
+} cs_command;
 
-typedef union
+typedef uint8_t cs_response;
+enum
 {
-    char text[32]; // simple text responses: OK, PONG, etc
-} cs_response_payload;
+    CS_RESPONSE_TEXT = 0,
+    CS_RESPONSE_U16,
+};
 
 typedef struct
 {
-    cs_response_id id;
-    cs_response_payload payload;
+    cs_response id;
+    uint8_t len;
+    uint8_t payload[CS_RESPONSE_PAYLOAD_MAX_BYTES];
 
 } cs_response_msg;
 
@@ -40,11 +40,9 @@ char *cs_get_free_cmd_buffer();
 
 size_t cs_get_free_cmd_buffer_len();
 
-bool cs_check_for_command(cs_command_id *out_cmd);
+bool cs_check_for_command(cs_command *out_cmd);
 
-// must be called from CDC_Receive_FS
-// void cs_usb_recv_ISR(uint8_t *buf, uint32_t len);
-
-// BaseType_t cs_usb_send_blocking(cs_response_msg *msg);
+void cs_build_text_response(cs_response_msg *resp, const char *text);
+void cs_build_data_response(cs_response_msg *resp, const uint16_t *data, size_t len);
 
 #endif // _CS_USB_COMM_

@@ -52,7 +52,7 @@ size_t cs_get_free_cmd_buffer_len()
     If a command is found, `out_cmd` is set to the command ID.
     Returns `true` if a command was found.
 */
-bool cs_check_for_command(cs_command_id *out_cmd)
+bool cs_check_for_command(cs_command *out_cmd)
 {
     // check if a command is present in the buffer
     size_t cmd_len = cs_find_cmd();
@@ -71,8 +71,8 @@ bool cs_check_for_command(cs_command_id *out_cmd)
 
 /* Attempts to find a command in the buffer.
     A command is any string terminated by a line-feed (`'\n'`)
-    
-    If a command is found, returns the length of the found command, 
+
+    If a command is found, returns the length of the found command,
     starting from the start of the buffer
 */
 size_t cs_find_cmd()
@@ -96,49 +96,90 @@ size_t cs_find_cmd()
 /* Attempts to parse a command present in the buffer.
     Returns CMD_ERR if no known command is found.
 */
-cs_command_id cs_parse_cmd()
+cs_command cs_parse_cmd()
 {
     char *str = _cmd_buffer;
     size_t len = _cmd_buffer_len;
 
     /* `len` (which represents ALL characters present in the buffer)
         is only specified as a maximum upper bound.
-        
-        Since the command in the buffer should be null-terminated, strncmp should 
+
+        Since the command in the buffer should be null-terminated, strncmp should
         stop at the first '\0', which may be found in less than `len` characters.
 
         This function should be called after `cs_find_cmd`, which null-terminates
         the found command.
-    */ 
-    cs_command_id cmd = CMD_ERR;
+    */
+    cs_command cmd = CS_COMMAND_ERR;
 
     if (0 == strncmp(str, "PING", len))
     {
-        cmd = CMD_PING;
+        cmd = CS_COMMAND_PING;
     }
     else if (0 == strncmp(str, "TOGGLE_LED", len))
     {
-        cmd = CMD_TOGGLE_LED;
+        cmd = CS_COMMAND_TOGGLE_LED;
     }
     else if (0 == strncmp(str, "MEM", len))
     {
-        cmd = CMD_MEM;
+        cmd = CS_COMMAND_MEM;
+    }
+    else if (0 == strncmp(str, "TEST_ADC", len))
+    {
+        cmd = CS_COMMAND_ADC;
     }
 
     return cmd;
 }
 
-/* Shift the contents of the buffer to the start of the buffer, starting from 
-    the end of the found command 
+/* Shift the contents of the buffer to the start of the buffer, starting from
+    the end of the found command
 */
 void cs_shift_cmd_buffer(size_t found_cmd_len)
 {
     char *dst = _cmd_buffer;
-    char *src = _cmd_buffer+found_cmd_len;
+    char *src = _cmd_buffer + found_cmd_len;
     size_t count = CMD_BUFFER_MAX_LEN - found_cmd_len;
-    
+
     memmove(dst, src, count);
 
     // update state
     _cmd_buffer_len = _cmd_buffer_len - found_cmd_len;
+}
+
+/* `text` must be a null-terminated C-string */
+void cs_build_text_response(cs_response_msg *resp, const char *text)
+{
+    size_t len = strlen(text);
+    if (len > CS_RESPONSE_PAYLOAD_MAX_BYTES)
+    {
+        len = CS_RESPONSE_PAYLOAD_MAX_BYTES;
+    }
+    
+    resp->id = CS_RESPONSE_TEXT;
+    resp->len = len;
+    strncpy((char *)resp->payload, text, len);
+}
+
+// little-endian formatting
+static inline void format_u16_le(uint8_t *dst, uint16_t v)
+{
+    dst[0] = (uint8_t)(v & 0xFF);
+    dst[1] = (uint8_t)(v >> 8);
+}
+
+void cs_build_data_response(cs_response_msg *resp, const uint16_t *data, size_t len)
+{
+    if (len > CS_RESPONSE_PAYLOAD_MAX_BYTES / sizeof(uint16_t))
+    {
+        len = CS_RESPONSE_PAYLOAD_MAX_BYTES / sizeof(uint16_t);
+    }
+
+    resp->id = CS_RESPONSE_U16;
+    resp->len = len;
+    for (size_t i = 0; i < len/2; i++)
+    {
+        format_u16_le(&resp->payload[2*i], data[i]);
+    }
+
 }

@@ -166,7 +166,7 @@ int main(void)
 
     created = xTaskCreate(task_usb_receiver,
                           "recvTask",
-                          configMINIMAL_STACK_SIZE * 2,
+                          configMINIMAL_STACK_SIZE * 3,
                           NULL,
                           CS_DEFAULT_PRIORITY,
                           &task_handle_usb_receiver);
@@ -262,7 +262,7 @@ static void MX_ADC1_Init(void)
      */
     hadc1.Instance = ADC1;
     hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
-    hadc1.Init.ContinuousConvMode = DISABLE;
+    hadc1.Init.ContinuousConvMode = ENABLE;
     hadc1.Init.DiscontinuousConvMode = DISABLE;
     hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
     hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
@@ -336,21 +336,32 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 void usb_recv_ISR(uint8_t *buf, uint32_t len)
 {
-    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    BaseType_t higherPriorityTaskWoken = pdFALSE;
 
     xStreamBufferSendFromISR(sb_usb_recv_buffer,
                              buf,
                              len,
-                             &xHigherPriorityTaskWoken);
+                             &higherPriorityTaskWoken);
 
-    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+    portYIELD_FROM_ISR(higherPriorityTaskWoken);
+}
+
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
+{
+    (void)hadc;
+    BaseType_t higherPriorityTaskWoken = pdFALSE;
+
+    vTaskNotifyGiveFromISR(task_handle_usb_receiver, &higherPriorityTaskWoken);
+
+    portYIELD_FROM_ISR(higherPriorityTaskWoken);
 }
 
 void task_usb_receiver(void *arg)
 {
     size_t available_bytes = 0;
     size_t received_bytes = 0;
-    cs_command_id cmd = CMD_ERR;
+    cs_command cmd = CS_COMMAND_ERR;
+
     for (;;)
     {
         available_bytes = cs_get_free_cmd_buffer_len();
@@ -383,33 +394,58 @@ void task_usb_receiver(void *arg)
         cs_response_msg resp;
         switch (cmd)
         {
-        case CMD_TOGGLE_LED:
+        case CS_COMMAND_TOGGLE_LED:
             HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-            resp.id = RESP_TEXT;
-            strcpy(resp.payload.text, "OK\n");
+            cs_build_text_response(&resp, "OK\n");
             break;
-        case CMD_PING:
-            resp.id = RESP_TEXT;
-            strcpy(resp.payload.text, "PONG\n");
+        case CS_COMMAND_PING:
+            cs_build_text_response(&resp, "PONG\n");
             break;
-        case CMD_MEM:
+        case CS_COMMAND_MEM:
             UBaseType_t receiver_stack_free_words = uxTaskGetStackHighWaterMark(NULL);
             UBaseType_t sender_stack_free_words = uxTaskGetStackHighWaterMark(task_handle_usb_sender);
 
-            resp.id = RESP_TEXT;
-            snprintf(resp.payload.text,
-                     sizeof(resp.payload.text),
-                     "Rcvr:%3lu, Sndr:%3lu\n", receiver_stack_free_words, sender_stack_free_words);
+            char buf[32] = {0};
+            snprintf(buf,
+                     sizeof(buf),
+                     "Rcvr:%3lu, Sndr:%3lu\n",
+                     receiver_stack_free_words, sender_stack_free_words);
+            cs_build_text_response(&resp, buf);
             break;
-        case CMD_ERR:
+        case CS_COMMAND_ADC:
+        {
+            uint16_t buf[16];
+            // start ADC+DMA
+            HAL_ADC_Start_DMA(&hadc1, (uint32_t *)buf, 16);
+            // block until it finishes
+            ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+            // stop ADC
+            HAL_ADC_Stop_DMA(&hadc1);
+            cs_build_data_response(&resp, buf, 16);
+            break;
+        }
+        case CS_COMMAND_ERR:
         default:
-            resp.id = RESP_TEXT;
-            strcpy(resp.payload.text, "unknown cmd\n");
+            cs_build_text_response(&resp, "unknown cmd\n");
             break;
         }
 
         xQueueSend(q_usb_send_queue, &resp, portMAX_DELAY);
     }
+}
+
+void usb_send(uint8_t *buf, size_t len)
+{
+    uint8_t state;
+
+    do
+    {
+        state = CDC_Transmit_FS(buf, len);
+        if (state == USBD_BUSY)
+        {
+            vTaskDelay(pdMS_TO_TICKS(50));
+        }
+    } while (state == USBD_BUSY);
 }
 
 void task_usb_sender(void *arg)
@@ -423,14 +459,9 @@ void task_usb_sender(void *arg)
             continue;
         }
 
-        switch (resp.id)
-        {
-        default:
-            // use text buffer by default
-            size_t len = strnlen(resp.payload.text, sizeof(resp.payload.text));
-            CDC_Transmit_FS((uint8_t *)resp.payload.text, len);
-            break;
-        }
+        usb_send(&resp.id, 1);
+        usb_send(&resp.len, 1);
+        usb_send(resp.payload, resp.len);
     }
 }
 
@@ -482,7 +513,7 @@ void StartDefaultTask(void *argument)
     {
         osDelay(pdMS_TO_TICKS(1000));
         // shwm = uxTaskGetStackHighWaterMark(NULL);
-    // (void) shwm;
+        // (void) shwm;
     }
     /* USER CODE END 5 */
 }

@@ -81,7 +81,9 @@ class SerialPal(cmd.Cmd):
             return
 
         recv = SerialPal.port.read_until()
-        print(recv.decode())
+
+        text = decode_message(recv)
+        print("Response: " + text)
 
     def do_send(self, arg):
         if not SerialPal.port.is_open:
@@ -100,3 +102,25 @@ class SerialPal(cmd.Cmd):
         print(f"{status} ({n})")
 
         self.do_recv(None)
+
+
+def decode_message(msg: bytes) -> str:
+    ID_TEXT = 0
+    ID_U16 = 1
+
+    if len(msg) < 2:
+        return ""
+
+    print(msg)
+    id = msg[0]
+    length = msg[1]
+
+    if id == ID_TEXT:
+        text = msg[2 : length + 2].decode("ascii")
+        return text
+    if id == ID_U16:
+        data = []
+        for i in range(length):
+            data.append(int.from_bytes(msg[2 + 2 * i : 4 + 2 * i], byteorder="little"))
+
+        return "".format(data)
