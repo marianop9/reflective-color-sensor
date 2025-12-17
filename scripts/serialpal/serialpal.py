@@ -2,13 +2,14 @@ import cmd
 import serial
 import serial.tools.list_ports
 
+import serialpal_utils
 
 port_settings = dict(
     baudrate=115200,
     parity=serial.PARITY_NONE,
     stopbits=serial.STOPBITS_ONE,
     bytesize=serial.EIGHTBITS,
-    timeout = 3,
+    timeout=3,
 )
 
 
@@ -82,7 +83,7 @@ class SerialPal(cmd.Cmd):
 
         recv = SerialPal.port.read_until()
 
-        text = decode_message(recv)
+        text = serialpal_utils.decode_message(recv)
         print("Response: " + text)
 
     def do_send(self, arg):
@@ -102,25 +103,3 @@ class SerialPal(cmd.Cmd):
         print(f"{status} ({n})")
 
         self.do_recv(None)
-
-
-def decode_message(msg: bytes) -> str:
-    ID_TEXT = 0
-    ID_U16 = 1
-
-    if len(msg) < 2:
-        return ""
-
-    print(msg)
-    id = msg[0]
-    length = msg[1]
-
-    if id == ID_TEXT:
-        text = msg[2 : length + 2].decode("ascii")
-        return text
-    if id == ID_U16:
-        data = []
-        for i in range(length):
-            data.append(int.from_bytes(msg[2 + 2 * i : 4 + 2 * i], byteorder="little"))
-
-        return "".format(data)
