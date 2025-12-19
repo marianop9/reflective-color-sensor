@@ -105,13 +105,58 @@ void test_parse_cmd()
 {
     cs_clear_cmd_buffer();
 
-    char test_cmd[] = {'T', 'O', 'G', 'G', 'L', 'E', '_', 'L', 'E', 'D', '\n'};
+    // null-terminated command. Don't need to call `cs_find_cmd()`
+    char test_cmd[] = "TOGGLE_LED";
 
     size_t test_cmd_size = sizeof(test_cmd);
-    char *cmd_buffer = cs_get_free_cmd_buffer();
 
+    char *cmd_buffer = cs_get_free_cmd_buffer();
     strncpy(cmd_buffer, test_cmd, test_cmd_size);
     cs_updated_cmd_buffer(test_cmd_size);
+
+    cs_command cmd = cs_parse_cmd();
+    TEST_ASSERT_NOT_EQUAL(CS_COMMAND_ERR, cmd);
+    TEST_ASSERT_EQUAL(CS_COMMAND_TOGGLE_LED, cmd);
+}
+
+void test_parse_args()
+{
+    cs_clear_cmd_buffer();
+    char args[] = "123 321";
+
+    int arg_count = cs_parse_args(args);
+    TEST_ASSERT_EQUAL(2, arg_count);
+
+    TEST_ASSERT_EQUAL_UINT32(123, cs_get_arg(0));
+    TEST_ASSERT_EQUAL_UINT32(321, cs_get_arg(1));
+
+    char args_spaced[] = " 321 123";
+
+    arg_count = cs_parse_args(args_spaced);
+    TEST_ASSERT_EQUAL(2, arg_count);
+
+    TEST_ASSERT_EQUAL_UINT32(321, cs_get_arg(0));
+    TEST_ASSERT_EQUAL_UINT32(123, cs_get_arg(1));
+}
+
+void test_check_for_command()
+{
+    cs_clear_cmd_buffer();
+
+    char test_cmd[] = {'S', 'E', 'T', '_', 'L', 'E', 'D', ' ', '1', '2', '3', ' ', '3', '2', '1', '\n'};
+    size_t test_cmd_size = sizeof(test_cmd);
+
+    char *cmd_buffer = cs_get_free_cmd_buffer();
+    strncpy(cmd_buffer, test_cmd, test_cmd_size);
+    cs_updated_cmd_buffer(test_cmd_size);
+
+    cs_command cmd;
+    bool found_cmd = cs_check_for_command(&cmd);
+
+    TEST_ASSERT_TRUE(found_cmd);
+    TEST_ASSERT_EQUAL(CS_COMMAND_SET_LED, cmd);
+    TEST_ASSERT_EQUAL_UINT32(123, cs_get_arg(0));
+    TEST_ASSERT_EQUAL_UINT32(321, cs_get_arg(1));
 }
 
 void test_shift_cmd_buffer()
@@ -145,7 +190,7 @@ void test_build_text_response()
     cs_build_text_response(&resp, str);
 
     TEST_ASSERT_EQUAL_size_t(strlen(str), resp.len);
-    
+
     TEST_ASSERT_EQUAL_STRING_LEN(str, resp.payload, resp.len);
 }
 
@@ -153,12 +198,12 @@ void test_build_data_response()
 {
     cs_response_msg resp = {0};
     uint16_t data[] = {1, 2, 3, 4, 5, 6, 7, 8};
-    size_t len = sizeof(data)/sizeof(data[0]);
+    size_t len = sizeof(data) / sizeof(data[0]);
 
     cs_build_data_response(&resp, data, len);
 
     TEST_ASSERT_EQUAL_size_t(len, resp.len);
-    
+
     // original data and payload aren't the same datatype, can't use TEST_ASSERT_EQUAL_UINT16_ARRAY
     TEST_ASSERT_EQUAL_MEMORY_ARRAY(data, resp.payload, 1, resp.len);
 }
@@ -171,6 +216,9 @@ int main(void)
     RUN_TEST(test_update_buffer);
     RUN_TEST(test_find_cmd);
     RUN_TEST(test_find_partial_cmd);
+    RUN_TEST(test_parse_cmd);
+    RUN_TEST(test_parse_args);
+    RUN_TEST(test_check_for_command);
     RUN_TEST(test_shift_cmd_buffer);
     RUN_TEST(test_build_text_response);
     RUN_TEST(test_build_data_response);

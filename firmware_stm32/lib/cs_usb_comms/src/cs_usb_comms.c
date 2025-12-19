@@ -1,22 +1,22 @@
+#include <stdlib.h>
 #include <string.h>
-
-// #include "FreeRTOS.h"
-// #include "queue.h"
-// #include "stream_buffer.h"
-
-// #include "usbd_cdc_if.h"
 
 #include "cs_usb_comms.h"
 #include "cs_usb_comms_internals.h"
+
+#define CS_ARG_COUNT 2
 
 static char _cmd_buffer[CMD_BUFFER_MAX_LEN] = {0};
 static size_t _cmd_buffer_len = 0;
 static size_t _cmd_buffer_prev_len = 0;
 
+static uint32_t _args[CS_ARG_COUNT] = {0};
+
 /* Clears the buffer and resets all state*/
 void cs_clear_cmd_buffer()
 {
     memset(_cmd_buffer, 0, CMD_BUFFER_MAX_LEN);
+    memset(_args, 0, sizeof(_args));
     _cmd_buffer_len = 0;
     _cmd_buffer_prev_len = 0;
 }
@@ -48,6 +48,18 @@ size_t cs_get_free_cmd_buffer_len()
     return (CMD_BUFFER_MAX_LEN - _cmd_buffer_len);
 }
 
+uint32_t cs_get_arg(size_t index)
+{
+    uint32_t arg = UINT32_MAX;
+
+    if (index < CS_ARG_COUNT)
+    {
+        arg = _args[index];
+    }
+
+    return arg;
+}
+
 /* Checks if a command can be found in the buffer.
     If a command is found, `out_cmd` is set to the command ID.
     Returns `true` if a command was found.
@@ -60,8 +72,25 @@ bool cs_check_for_command(cs_command *out_cmd)
 
     if (found_cmd)
     {
+        // reset args
+        memset(_args, 0, sizeof(_args));
+
+        // first token is the actual command
+        char *cmd_end = strchr(_cmd_buffer, ' ');
+
+        // if there is a space after the command, args are expected
+        if (cmd_end != NULL)
+        {
+            // null-terminate command
+            *cmd_end = '\0';
+
+            int arg_count = cs_parse_args(cmd_end + 1);
+            (void)arg_count; // might use in the future with configurable commands
+        }
+
         // parse and set the command
         *out_cmd = cs_parse_cmd();
+
         // update buffer
         cs_shift_cmd_buffer(cmd_len);
     }
@@ -93,13 +122,34 @@ size_t cs_find_cmd()
     return cmd_len;
 }
 
+// returns the number of found arguments
+int cs_parse_args(char *args_start)
+{
+    char *end = NULL;
+    int i = 0;
+
+    unsigned long arg = strtoul(args_start, &end, 10);
+
+    while (args_start != end)
+    {
+        _args[i] = (uint32_t)arg;
+        i += 1;
+        args_start = end;
+
+        arg = strtoul(args_start, &end, 10);
+    }
+
+    return i;
+}
+
 /* Attempts to parse a command present in the buffer.
     Returns CMD_ERR if no known command is found.
 */
 cs_command cs_parse_cmd()
 {
-    char *str = _cmd_buffer;
-    size_t len = _cmd_buffer_len;
+    cs_command cmd = CS_COMMAND_ERR;
+    const char *str = _cmd_buffer;
+    // size_t len = _cmd_buffer_len;
 
     /* `len` (which represents ALL characters present in the buffer)
         is only specified as a maximum upper bound.
@@ -109,28 +159,32 @@ cs_command cs_parse_cmd()
 
         This function should be called after `cs_find_cmd`, which null-terminates
         the found command.
-    */
-    cs_command cmd = CS_COMMAND_ERR;
 
-    if (0 == strncmp(str, "PING", len))
+        HEHE:
+        strncmp not needed since the function will return as soon as it finds a non-match.
+        Since at least one of the parameters is always null-terminated, there is no need to
+        specify an upper bound.
+    */
+
+    if (0 == strcmp(str, "PING"))
     {
         cmd = CS_COMMAND_PING;
     }
-    else if (0 == strncmp(str, "TOGGLE_LED", len))
+    else if (0 == strcmp(str, "TOGGLE_LED"))
     {
         cmd = CS_COMMAND_TOGGLE_LED;
     }
-    else if (0 == strncmp(str, "MEM", len))
+    else if (0 == strcmp(str, "MEM"))
     {
         cmd = CS_COMMAND_MEM;
     }
-    else if (0 == strncmp(str, "TEST_ADC", len))
+    else if (0 == strcmp(str, "TEST_ADC"))
     {
         cmd = CS_COMMAND_ADC;
     }
-    else if (0 == strncmp(str, "SET_LED", len))
+    else if (0 == strcmp(str, "SET_LED"))
     {
-        cmd = CS_COMMAND_LED;
+        cmd = CS_COMMAND_SET_LED;
     }
 
     return cmd;
@@ -159,7 +213,7 @@ void cs_build_text_response(cs_response_msg *resp, const char *text)
     {
         len = CS_RESPONSE_PAYLOAD_MAX_BYTES;
     }
-    
+
     resp->id = CS_RESPONSE_TEXT;
     resp->len = len;
     strncpy((char *)resp->payload, text, len);
@@ -181,9 +235,8 @@ void cs_build_data_response(cs_response_msg *resp, const uint16_t *data, size_t 
 
     resp->id = CS_RESPONSE_U16;
     resp->len = len;
-    for (size_t i = 0; i < len/2; i++)
+    for (size_t i = 0; i < len / 2; i++)
     {
-        format_u16_le(&resp->payload[2*i], data[i]);
+        format_u16_le(&resp->payload[2 * i], data[i]);
     }
-
 }

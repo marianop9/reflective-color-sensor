@@ -88,7 +88,6 @@ void usb_recv_ISR(uint8_t *buf, uint32_t len);
 void task_usb_receiver(void *pargs);
 void task_usb_sender(void *pargs);
 
-
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -134,8 +133,8 @@ int main(void)
     MX_ADC1_Init();
     MX_TIM3_Init();
     /* USER CODE BEGIN 2 */
-    
-    led_ctrl_init(htim3.Instance->ARR); 
+
+    led_ctrl_init(htim3.Instance->ARR);
     /* USER CODE END 2 */
 
     /* Init scheduler */
@@ -484,12 +483,24 @@ void task_usb_receiver(void *arg)
             cs_build_data_response(&resp, buf, 16);
             break;
         }
-        case CS_COMMAND_LED:
-            led_ctrl_set_buffer(0, 255, 0, 0);
-            HAL_TIM_PWM_Start_DMA(&htim3, TIM_CHANNEL_1, (uint32_t *)led_ctrl_dma_buffer, LED_CTRL_DMA_BUFFER_LEN);
-            // block until it finishes
-            ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-            cs_build_text_response(&resp, "OK\n");
+        case CS_COMMAND_SET_LED:
+            // arg1: led index
+            uint32_t index = cs_get_arg(0);
+            // arg2: 24-bit RGB code
+            uint32_t rgb = cs_get_arg(1);
+
+            if (led_ctrl_set_buffer2(index, rgb) == 0)
+            {
+                HAL_TIM_PWM_Start_DMA(&htim3, TIM_CHANNEL_1, (uint32_t *)led_ctrl_dma_buffer, LED_CTRL_DMA_BUFFER_LEN);
+                // block until it finishes
+                ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+                cs_build_text_response(&resp, "OK\n");
+            }
+            else
+            {
+                cs_build_text_response(&resp, "failed to set LEDs\n");
+            }
+
             break;
         case CS_COMMAND_ERR:
         default:
@@ -541,7 +552,6 @@ void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim)
 
     portYIELD_FROM_ISR(higherPriorityTaskWoken);
 }
-
 
 // FreeRTOS hooks/assert hanndler
 void vApplicationMallocFailedHook(void)

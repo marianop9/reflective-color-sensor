@@ -13,7 +13,7 @@ typedef enum
     CS_COMMAND_MEM,
     CS_COMMAND_TOGGLE_LED, // test onboard led
     CS_COMMAND_ADC,
-    CS_COMMAND_LED
+    CS_COMMAND_SET_LED
 } cs_command;
 
 typedef uint8_t cs_response;
@@ -40,6 +40,8 @@ size_t cs_get_cmd_buffer_len();
 char *cs_get_free_cmd_buffer();
 
 size_t cs_get_free_cmd_buffer_len();
+
+uint32_t cs_get_arg(size_t index);
 
 bool cs_check_for_command(cs_command *out_cmd);
 

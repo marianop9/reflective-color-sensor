@@ -12,6 +12,8 @@ extern uint16_t led_ctrl_dma_buffer[LED_CTRL_DMA_BUFFER_LEN];
 
 void led_ctrl_init(uint16_t pwm_max_counter);
 
+int led_ctrl_set_buffer2(uint32_t index, uint32_t rgb);
+
 int led_ctrl_set_buffer(
     uint32_t index,
     uint8_t r,
