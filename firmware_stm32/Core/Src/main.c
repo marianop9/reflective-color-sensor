@@ -29,6 +29,7 @@
 #include "stream_buffer.h"
 
 #include "cs_usb_comms.h"
+#include "cs_led_ctrl.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -42,6 +43,7 @@
 #define CS_DEFAULT_PRIORITY (osPriorityNormal)
 // USB StreamBuffer capacity. Data received via USB is copied into this buffer
 #define SB_USB_BUFFER_CAPACITY 64
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -52,6 +54,9 @@
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
 DMA_HandleTypeDef hdma_adc1;
+
+TIM_HandleTypeDef htim3;
+DMA_HandleTypeDef hdma_tim3_ch1_trig;
 
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
@@ -74,6 +79,7 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
 static void MX_ADC1_Init(void);
+static void MX_TIM3_Init(void);
 void StartDefaultTask(void *argument);
 
 /* USER CODE BEGIN PFP */
@@ -81,6 +87,7 @@ void usb_recv_ISR(uint8_t *buf, uint32_t len);
 
 void task_usb_receiver(void *pargs);
 void task_usb_sender(void *pargs);
+
 
 /* USER CODE END PFP */
 
@@ -125,8 +132,10 @@ int main(void)
     MX_GPIO_Init();
     MX_DMA_Init();
     MX_ADC1_Init();
+    MX_TIM3_Init();
     /* USER CODE BEGIN 2 */
-
+    
+    led_ctrl_init(htim3.Instance->ARR); 
     /* USER CODE END 2 */
 
     /* Init scheduler */
@@ -287,6 +296,54 @@ static void MX_ADC1_Init(void)
 }
 
 /**
+ * @brief TIM3 Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_TIM3_Init(void)
+{
+
+    /* USER CODE BEGIN TIM3_Init 0 */
+
+    /* USER CODE END TIM3_Init 0 */
+
+    TIM_MasterConfigTypeDef sMasterConfig = {0};
+    TIM_OC_InitTypeDef sConfigOC = {0};
+
+    /* USER CODE BEGIN TIM3_Init 1 */
+
+    /* USER CODE END TIM3_Init 1 */
+    htim3.Instance = TIM3;
+    htim3.Init.Prescaler = 0;
+    htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
+    htim3.Init.Period = (108 - 1);
+    htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+    htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+    if (HAL_TIM_PWM_Init(&htim3) != HAL_OK)
+    {
+        Error_Handler();
+    }
+    sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+    sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+    if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
+    {
+        Error_Handler();
+    }
+    sConfigOC.OCMode = TIM_OCMODE_PWM1;
+    sConfigOC.Pulse = 0;
+    sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+    sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+    if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+    {
+        Error_Handler();
+    }
+    /* USER CODE BEGIN TIM3_Init 2 */
+
+    /* USER CODE END TIM3_Init 2 */
+    HAL_TIM_MspPostInit(&htim3);
+}
+
+/**
  * Enable DMA controller clock
  */
 static void MX_DMA_Init(void)
@@ -299,6 +356,9 @@ static void MX_DMA_Init(void)
     /* DMA1_Channel1_IRQn interrupt configuration */
     HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 5, 0);
     HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
+    /* DMA1_Channel6_IRQn interrupt configuration */
+    HAL_NVIC_SetPriority(DMA1_Channel6_IRQn, 5, 0);
+    HAL_NVIC_EnableIRQ(DMA1_Channel6_IRQn);
 }
 
 /**
@@ -424,6 +484,13 @@ void task_usb_receiver(void *arg)
             cs_build_data_response(&resp, buf, 16);
             break;
         }
+        case CS_COMMAND_LED:
+            led_ctrl_set_buffer(0, 255, 0, 0);
+            HAL_TIM_PWM_Start_DMA(&htim3, TIM_CHANNEL_1, (uint32_t *)led_ctrl_dma_buffer, LED_CTRL_DMA_BUFFER_LEN);
+            // block until it finishes
+            ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+            cs_build_text_response(&resp, "OK\n");
+            break;
         case CS_COMMAND_ERR:
         default:
             cs_build_text_response(&resp, "unknown cmd\n");
@@ -464,6 +531,17 @@ void task_usb_sender(void *arg)
         usb_send(resp.payload, resp.len);
     }
 }
+
+void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim)
+{
+    (void)htim;
+    BaseType_t higherPriorityTaskWoken = pdFALSE;
+
+    vTaskNotifyGiveFromISR(task_handle_usb_receiver, &higherPriorityTaskWoken);
+
+    portYIELD_FROM_ISR(higherPriorityTaskWoken);
+}
+
 
 // FreeRTOS hooks/assert hanndler
 void vApplicationMallocFailedHook(void)

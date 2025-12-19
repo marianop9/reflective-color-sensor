@@ -11,8 +11,9 @@ typedef enum
     CS_COMMAND_ERR = 0,
     CS_COMMAND_PING,
     CS_COMMAND_MEM,
-    CS_COMMAND_TOGGLE_LED,
+    CS_COMMAND_TOGGLE_LED, // test onboard led
     CS_COMMAND_ADC,
+    CS_COMMAND_LED
 } cs_command;
 
 typedef uint8_t cs_response;

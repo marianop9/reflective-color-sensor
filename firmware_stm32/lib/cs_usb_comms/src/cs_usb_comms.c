@@ -128,6 +128,10 @@ cs_command cs_parse_cmd()
     {
         cmd = CS_COMMAND_ADC;
     }
+    else if (0 == strncmp(str, "SET_LED", len))
+    {
+        cmd = CS_COMMAND_LED;
+    }
 
     return cmd;
 }
