@@ -11,7 +11,7 @@ void led_ctrl_init(uint16_t pwm_max_counter)
 
 int led_ctrl_set_buffer2(uint32_t index, uint32_t rgb)
 {
-    led_ctrl_set_buffer(index,
+    return led_ctrl_set_buffer(index,
                         rgb >> 16,
                         (rgb >> 8) & 0xff,
                         rgb & 0xff);

@@ -14,6 +14,8 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 # Add sources to executable
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
+    ${CMAKE_SOURCE_DIR}/Core/Src/cs_tasks.c
+    ${CMAKE_SOURCE_DIR}/Core/Src/cs_usb.c
     ${CMAKE_SOURCE_DIR}/Core/Src/cs_led_ctrl.c
 )
 

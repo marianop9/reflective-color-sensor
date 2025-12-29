@@ -23,13 +23,9 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "usbd_cdc_if.h"
 
-#include "queue.h"
-#include "stream_buffer.h"
+#include "cs_tasks.h"
 
-#include "cs_usb_comms.h"
-#include "cs_led_ctrl.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -39,10 +35,9 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+
 // default priority for tasks (matches the priority used by the default task)
 #define CS_DEFAULT_PRIORITY (osPriorityNormal)
-// USB StreamBuffer capacity. Data received via USB is copied into this buffer
-#define SB_USB_BUFFER_CAPACITY 64
 
 /* USER CODE END PD */
 
@@ -66,11 +61,6 @@ const osThreadAttr_t defaultTask_attributes = {
     .priority = (osPriority_t)osPriorityAboveNormal,
 };
 /* USER CODE BEGIN PV */
-TaskHandle_t task_handle_usb_receiver;
-TaskHandle_t task_handle_usb_sender;
-
-StreamBufferHandle_t sb_usb_recv_buffer;
-QueueHandle_t q_usb_send_queue;
 
 /* USER CODE END PV */
 
@@ -83,15 +73,30 @@ static void MX_TIM3_Init(void);
 void StartDefaultTask(void *argument);
 
 /* USER CODE BEGIN PFP */
-void usb_recv_ISR(uint8_t *buf, uint32_t len);
-
-void task_usb_receiver(void *pargs);
-void task_usb_sender(void *pargs);
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
+{
+    (void)hadc;
+    BaseType_t higherPriorityTaskWoken = pdFALSE;
+
+    vTaskNotifyGiveFromISR(task_handle_usb_receiver, &higherPriorityTaskWoken);
+
+    portYIELD_FROM_ISR(higherPriorityTaskWoken);
+}
+
+void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim)
+{
+    (void)htim;
+    BaseType_t higherPriorityTaskWoken = pdFALSE;
+
+    vTaskNotifyGiveFromISR(task_handle_usb_receiver, &higherPriorityTaskWoken);
+
+    portYIELD_FROM_ISR(higherPriorityTaskWoken);
+}
 
 void toggle_led()
 {
@@ -133,8 +138,7 @@ int main(void)
     MX_ADC1_Init();
     MX_TIM3_Init();
     /* USER CODE BEGIN 2 */
-
-    led_ctrl_init(htim3.Instance->ARR);
+    
     /* USER CODE END 2 */
 
     /* Init scheduler */
@@ -153,8 +157,6 @@ int main(void)
     /* USER CODE END RTOS_TIMERS */
 
     /* USER CODE BEGIN RTOS_QUEUES */
-    q_usb_send_queue = xQueueCreate(2, sizeof(cs_response_msg));
-    sb_usb_recv_buffer = xStreamBufferCreate(SB_USB_BUFFER_CAPACITY, 1);
     /* USER CODE END RTOS_QUEUES */
 
     /* Create the thread(s) */
@@ -162,24 +164,26 @@ int main(void)
     defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
     /* USER CODE BEGIN RTOS_THREADS */
+    tasks_init();
+
     BaseType_t created;
-    created = xTaskCreate(task_usb_sender,
+    created = xTaskCreate(tasks_usb_sender,
                           "senderTask",
                           configMINIMAL_STACK_SIZE * 2,
                           NULL,
                           CS_DEFAULT_PRIORITY,
                           &task_handle_usb_sender);
 
-    configASSERT(pdPASS == created);
+    configASSERT(created == pdPASS);
 
-    created = xTaskCreate(task_usb_receiver,
+    created = xTaskCreate(tasks_usb_receiver,
                           "recvTask",
                           configMINIMAL_STACK_SIZE * 3,
                           NULL,
                           CS_DEFAULT_PRIORITY,
                           &task_handle_usb_receiver);
 
-    configASSERT(pdPASS == created);
+    configASSERT(created == pdPASS);
     /* USER CODE END RTOS_THREADS */
 
     /* USER CODE BEGIN RTOS_EVENTS */
@@ -196,7 +200,6 @@ int main(void)
     while (1)
     {
         /* USER CODE END WHILE */
-
         /* USER CODE BEGIN 3 */
     }
     /* USER CODE END 3 */
@@ -393,165 +396,6 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-void usb_recv_ISR(uint8_t *buf, uint32_t len)
-{
-    BaseType_t higherPriorityTaskWoken = pdFALSE;
-
-    xStreamBufferSendFromISR(sb_usb_recv_buffer,
-                             buf,
-                             len,
-                             &higherPriorityTaskWoken);
-
-    portYIELD_FROM_ISR(higherPriorityTaskWoken);
-}
-
-void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
-{
-    (void)hadc;
-    BaseType_t higherPriorityTaskWoken = pdFALSE;
-
-    vTaskNotifyGiveFromISR(task_handle_usb_receiver, &higherPriorityTaskWoken);
-
-    portYIELD_FROM_ISR(higherPriorityTaskWoken);
-}
-
-void task_usb_receiver(void *arg)
-{
-    size_t available_bytes = 0;
-    size_t received_bytes = 0;
-    cs_command cmd = CS_COMMAND_ERR;
-
-    for (;;)
-    {
-        available_bytes = cs_get_free_cmd_buffer_len();
-        if (available_bytes == 0)
-        {
-            /* If the buffer is full (no free bytes), no bytes will be written in the next
-            xStreamBufferReceive call. After this, no further updates will be triggered.
-            The only way this can happen is if the host sends garbage, or sends multiple commands without ending in a line-feed (\n). The buffer is cleared to avoid this. */
-            cs_clear_cmd_buffer();
-            available_bytes = cs_get_free_cmd_buffer_len();
-        }
-
-        received_bytes = xStreamBufferReceive(sb_usb_recv_buffer,
-                                              (void *)cs_get_free_cmd_buffer(),
-                                              available_bytes,
-                                              portMAX_DELAY);
-
-        if (received_bytes == 0)
-        {
-            continue;
-        }
-
-        cs_updated_cmd_buffer(received_bytes);
-
-        if (!cs_check_for_command(&cmd))
-        {
-            continue;
-        }
-
-        cs_response_msg resp;
-        switch (cmd)
-        {
-        case CS_COMMAND_TOGGLE_LED:
-            HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-            cs_build_text_response(&resp, "OK\n");
-            break;
-        case CS_COMMAND_PING:
-            cs_build_text_response(&resp, "PONG\n");
-            break;
-        case CS_COMMAND_MEM:
-            UBaseType_t receiver_stack_free_words = uxTaskGetStackHighWaterMark(NULL);
-            UBaseType_t sender_stack_free_words = uxTaskGetStackHighWaterMark(task_handle_usb_sender);
-
-            char buf[32] = {0};
-            snprintf(buf,
-                     sizeof(buf),
-                     "Rcvr:%3lu, Sndr:%3lu\n",
-                     receiver_stack_free_words, sender_stack_free_words);
-            cs_build_text_response(&resp, buf);
-            break;
-        case CS_COMMAND_ADC:
-        {
-            uint16_t buf[16];
-            // start ADC+DMA
-            HAL_ADC_Start_DMA(&hadc1, (uint32_t *)buf, 16);
-            // block until it finishes
-            ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-            // stop ADC
-            HAL_ADC_Stop_DMA(&hadc1);
-            cs_build_data_response(&resp, buf, 16);
-            break;
-        }
-        case CS_COMMAND_SET_LED:
-            // arg1: led index
-            uint32_t index = cs_get_arg(0);
-            // arg2: 24-bit RGB code
-            uint32_t rgb = cs_get_arg(1);
-
-            if (led_ctrl_set_buffer2(index, rgb) == 0)
-            {
-                HAL_TIM_PWM_Start_DMA(&htim3, TIM_CHANNEL_1, (uint32_t *)led_ctrl_dma_buffer, LED_CTRL_DMA_BUFFER_LEN);
-                // block until it finishes
-                ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-                cs_build_text_response(&resp, "OK\n");
-            }
-            else
-            {
-                cs_build_text_response(&resp, "failed to set LEDs\n");
-            }
-
-            break;
-        case CS_COMMAND_ERR:
-        default:
-            cs_build_text_response(&resp, "unknown cmd\n");
-            break;
-        }
-
-        xQueueSend(q_usb_send_queue, &resp, portMAX_DELAY);
-    }
-}
-
-void usb_send(uint8_t *buf, size_t len)
-{
-    uint8_t state;
-
-    do
-    {
-        state = CDC_Transmit_FS(buf, len);
-        if (state == USBD_BUSY)
-        {
-            vTaskDelay(pdMS_TO_TICKS(50));
-        }
-    } while (state == USBD_BUSY);
-}
-
-void task_usb_sender(void *arg)
-{
-    for (;;)
-    {
-        cs_response_msg resp = {0};
-
-        if (pdPASS != xQueueReceive(q_usb_send_queue, &resp, portMAX_DELAY))
-        {
-            continue;
-        }
-
-        usb_send(&resp.id, 1);
-        usb_send(&resp.len, 1);
-        usb_send(resp.payload, resp.len);
-    }
-}
-
-void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim)
-{
-    (void)htim;
-    BaseType_t higherPriorityTaskWoken = pdFALSE;
-
-    vTaskNotifyGiveFromISR(task_handle_usb_receiver, &higherPriorityTaskWoken);
-
-    portYIELD_FROM_ISR(higherPriorityTaskWoken);
-}
 
 // FreeRTOS hooks/assert hanndler
 void vApplicationMallocFailedHook(void)
@@ -595,14 +439,7 @@ void StartDefaultTask(void *argument)
     /* init code for USB_DEVICE */
     MX_USB_DEVICE_Init();
     /* USER CODE BEGIN 5 */
-    // UBaseType_t shwm;
-    /* Infinite loop */
-    for (;;)
-    {
-        osDelay(pdMS_TO_TICKS(1000));
-        // shwm = uxTaskGetStackHighWaterMark(NULL);
-        // (void) shwm;
-    }
+    vTaskDelete(NULL);
     /* USER CODE END 5 */
 }
 
