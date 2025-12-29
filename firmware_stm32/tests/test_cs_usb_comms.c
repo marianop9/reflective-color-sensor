@@ -143,7 +143,7 @@ void test_check_for_command()
 {
     cs_clear_cmd_buffer();
 
-    char test_cmd[] = {'S', 'E', 'T', '_', 'L', 'E', 'D', ' ', '1', '2', '3', ' ', '3', '2', '1', '\n'};
+    char test_cmd[] = {'S', 'E', 'T', '_', 'L', 'E', 'D', ' ', '1', '2', '3', ' ', '3', '2', '1', ' ', '9', '\n'};
     size_t test_cmd_size = sizeof(test_cmd);
 
     char *cmd_buffer = cs_get_free_cmd_buffer();

@@ -130,7 +130,7 @@ int cs_parse_args(char *args_start)
 
     unsigned long arg = strtoul(args_start, &end, 10);
 
-    while (args_start != end)
+    while (args_start != end && i < CS_ARG_COUNT)
     {
         _args[i] = (uint32_t)arg;
         i += 1;
