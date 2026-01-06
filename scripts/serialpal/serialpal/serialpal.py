@@ -82,3 +82,7 @@ class SerialPal():
         n = self.serial_port.write(cmd)
         status = "OK" if n == len(cmd) else "ERR"
         print(f"{status} ({n})")
+
+    def set_led(self, idx: int, rgb: int):
+        cmd = "SET_LED {} {}".format(idx, rgb)
+        self.send(cmd)

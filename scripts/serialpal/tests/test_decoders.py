@@ -4,7 +4,7 @@ import struct
 from serialpal import decoders
 
 
-class TestSerialpalUtils(unittest.TestCase):
+class TestDecoders(unittest.TestCase):
 
     def test_decode_header(self):
         s = b'\x00\x05'

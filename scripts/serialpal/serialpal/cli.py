@@ -44,13 +44,82 @@ class Cli(cmd.Cmd):
             self.serial.close()
             print(f"{self.serial.serial_port_name()} closed!")
 
+    def receive(self):
+        return self.serial.receive()
+
     def do_recv(self, _):
-        result = self.serial.receive()
+        result = self.receive()
         print(f"RECV: {result}")
 
     def do_send(self, arg):
         self.serial.send(arg)
-        self.do_recv(None)
+        self.receive()
+
+    def do_ping(self, _):
+        self.serial.send("PING")
+        self.receive()
+
+    def do_mem(self, _):
+        "Get memory stats"
+        self.serial.send("MEM")
+        self.receive()
+
+    def do_set_led(self, args):
+        """
+            Set LED
+
+            set_led <led_idx> <24-bit-rgb>
+            set_led <led_idx> <R(0-255)> <G(0-255)> <B(0-255)>
+        """
+        argc = len(args)
+        if argc != 2 or argc != 4:
+            print('invalid args')
+            return
+
+        led: int
+        rgb: int
+
+        try:
+            led = int(args[0])
+            if led < 0:
+                raise ValueError
+        except ValueError:
+            print("invalid led_idx:", args[0])
+            return
+
+        try:
+            rgb = build_rgb(args[1:])
+        except ValueError:
+            print("invalid rgb:", args[1:])
+            return
+
+        self.serial.set_led(led, rgb)
+        self.receive()
+
+
+def build_rgb(input: list[str]) -> int:
+    """ Parses user input into the necessary RGB value.
+
+        If int conversion fails or user input is out-of-bounds,
+        a `ValueError` is raised.
+    """
+    rgb: int
+
+    if len(input) == 1:
+        # 24-bit-rgb (in hex)
+        rgb = int(input[0], 16)
+        if rgb < 0 or rgb >= (1 << 24):
+            raise ValueError
+
+    if len(input) == 3:
+        # individual r-g-b values (in base-10)
+        r, g, b = [int(x) for x in input]
+        if any([x < 0 or x >= (1 << 8)
+                for x in (r, g, b)]):
+            raise ValueError
+        rgb = r << 16 | g << 8 | b
+
+    return rgb
 
 
 def main():
