@@ -104,7 +104,6 @@ void tasks_usb_receiver(void *arg)
         }
         case CS_COMMAND_SET_LED:
         {
-
             // arg0: led index
             uint32_t index = cs_get_arg(0);
             // arg1: 24-bit RGB code
@@ -114,8 +113,8 @@ void tasks_usb_receiver(void *arg)
             {
                 HAL_TIM_PWM_Start_DMA(&htim3,
                                       TIM_CHANNEL_1,
-                                      (uint32_t *)led_ctrl_dma_buffer,
-                                      LED_CTRL_DMA_BUFFER_LEN);
+                                      (uint32_t *)led_ctrl_get_buffer(),
+                                      led_ctrl_get_buffer_len());
                 // block until it finishes
                 ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
                 cs_build_text_response(&resp, "OK\n");
