@@ -17,28 +17,3 @@ def decode_data(msg: bytes, payload_len: int) -> tuple[int]:
     data = struct.unpack_from('<{}H'.format(payload_len), msg, offset=2)
 
     return data
-
-
-def decode_message(msg: bytes, should_print=False) -> str:
-    """ Expected format:
-
-        id/type  | payload_length  | payload            | \\n
-
-        (uint8_t)| (uint8_t)       | (length*uint16_t)  | (char)
-    """
-    ID_TEXT = 0
-    ID_U16 = 1
-
-    if should_print:
-        print(msg)
-
-    if len(msg) <= 2:
-        return ''
-
-    id, length = decode_header(msg[:2])
-
-    if id == ID_TEXT:
-        return decode_text(msg, length)
-
-    if id == ID_U16:
-        return str(decode_data(msg, length))

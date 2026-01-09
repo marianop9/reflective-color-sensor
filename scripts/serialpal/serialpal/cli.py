@@ -1,6 +1,6 @@
 import cmd
 
-from .serialpal import SerialPal
+from .serialpal import SerialPal, Response
 
 
 class Cli(cmd.Cmd):
@@ -44,41 +44,44 @@ class Cli(cmd.Cmd):
             self.serial.close()
             print(f"{self.serial.serial_port_name()} closed!")
 
-    def receive(self):
-        return self.serial.receive()
+    def receive(self, should_print=False) -> Response:
+        result = self.serial.receive()
+        if should_print:
+            print(f"RECV: ({result.type}) {result.data}")
+
+        return result
 
     def do_recv(self, _):
-        result = self.receive()
-        print(f"RECV: {result}")
+        self.receive(True)
 
     def do_send(self, arg):
         self.serial.send(arg)
-        self.receive()
+        self.receive(True)
 
     def do_ping(self, _):
         self.serial.send("PING")
-        self.receive()
+        self.receive(True)
 
     def do_mem(self, _):
         "Get memory stats"
         self.serial.send("MEM")
-        self.receive()
+        self.receive(True)
 
-    def do_set_led(self, args):
+    def do_set_led(self, arg):
         """
             Set LED
 
             set_led <led_idx> <24-bit-rgb>
             set_led <led_idx> <R(0-255)> <G(0-255)> <B(0-255)>
         """
+        args = arg.split(' ')
         argc = len(args)
-        if argc != 2 or argc != 4:
+        if argc != 2 and argc != 4:
             print('invalid args')
             return
 
         led: int
         rgb: int
-
         try:
             led = int(args[0])
             if led < 0:
@@ -94,7 +97,7 @@ class Cli(cmd.Cmd):
             return
 
         self.serial.set_led(led, rgb)
-        self.receive()
+        self.receive(True)
 
 
 def build_rgb(input: list[str]) -> int:

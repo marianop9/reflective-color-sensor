@@ -17,7 +17,7 @@ class TestDecoders(unittest.TestCase):
         s = b'\x00\x05PING\n'
         expected = 'PING\n'
 
-        output = decoders.decode_message(s)
+        output = decoders.decode_text(s, 5)
         self.assertEqual(expected, output)
 
     def test_decode_data(self):

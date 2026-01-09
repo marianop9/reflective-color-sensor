@@ -1,7 +1,18 @@
 import serial
 import serial.tools.list_ports
+from typing import Literal
 
 from . import decoders
+
+
+class Response:
+    def __init__(self, type: Literal["text", "data"], data: str | tuple[int]):
+        self.type = type
+        self.data = data
+
+    def is_error(self):
+        return self.type == "text" and self.data.startswith("ERR")
+
 
 _port_settings = dict(
     baudrate=115200,
@@ -59,13 +70,13 @@ class SerialPal():
         else:
             print(f"{self.serial_port.port} open!")
 
-    def receive(self) -> str:
+    def receive(self) -> Response:
         if not self.serial_port.is_open:
             print("no open ports")
             return ""
 
         recv = self.serial_port.read_until()
-        return decoders.decode_message(recv)
+        return build_response(recv)
 
     def send(self, arg):
         if not self.serial_port.is_open:
@@ -86,3 +97,28 @@ class SerialPal():
     def set_led(self, idx: int, rgb: int):
         cmd = "SET_LED {} {}".format(idx, rgb)
         self.send(cmd)
+
+
+def build_response(msg: bytes, should_print=False) -> Response:
+    """ Expected format:
+
+        id/type  | payload_length  | payload            | \\n
+
+        (uint8_t)| (uint8_t)       | (length*uint16_t)  | (char)
+    """
+    ID_TEXT = 0
+    ID_U16 = 1
+
+    if should_print:
+        print(msg)
+
+    if len(msg) <= 2:
+        return ''
+
+    id, length = decoders.decode_header(msg[:2])
+
+    if id == ID_TEXT:
+        return Response(type='text', data=decoders.decode_text(msg, length))
+
+    if id == ID_U16:
+        return Response(type='data', data=decoders.decode_data(msg, length))
