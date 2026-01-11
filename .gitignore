@@ -7,3 +7,6 @@ __pycache__
 
 # FreeCAD backups
 *.FCBak
+
+# macOS temporal files
+*.DS_Store

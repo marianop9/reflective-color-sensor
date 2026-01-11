@@ -1,5 +1,5 @@
 add_subdirectory(lib/lcd)
-add_subdirectory(lib/web_server)
+#add_subdirectory(lib/web_server)
 
 add_executable(sensor main.c filter.c)
 
@@ -8,8 +8,7 @@ target_link_libraries(sensor
     hardware_adc
     hardware_dma
     pico_multicore
-    cs_web_server
-    # mylib-lcd
+    #cs_web_server
 )
 
 pico_enable_stdio_usb(sensor 1)
@@ -24,7 +23,8 @@ target_link_libraries(calibracion
     hardware_adc
     hardware_dma
     pico_multicore
-    cs_web_server
+    #cs_web_server
+    FreeRTOS
 )
 
 pico_enable_stdio_usb(calibracion 1)
