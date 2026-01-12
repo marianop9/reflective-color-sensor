@@ -1,4 +1,21 @@
-# Medidor de color por reflexión
-Entregado como TP integrador 4to año. 
+# Color Sensor Firmware
 
-Noviembre 2024
+## Setup
+
+Initialize FreeRTOS, pico-sdk submodules:
+
+```sh
+git submodule update --init
+```
+
+Configure CMake (run from root dir):
+
+```sh
+cmake -S . -B build
+```
+
+Build:
+
+```sh
+cmake --build .\build\
+```
