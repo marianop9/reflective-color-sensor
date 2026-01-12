@@ -1,33 +1,33 @@
-add_subdirectory(lib/lcd)
-#add_subdirectory(lib/web_server)
+# init pico-sdk
+pico_sdk_init()
 
-add_executable(sensor main.c filter.c)
-
-target_link_libraries(sensor
-    pico_stdlib
-    hardware_adc
-    hardware_dma
-    pico_multicore
-    #cs_web_server
+# include FreeRTOS Kernel
+## the RP2040 FreeRTOS port expects the (deprecated) FREERTOS_CONFIG_FILE_DIRECTORY variable
+set(FREERTOS_CONFIG_FILE_DIRECTORY 
+    "${CMAKE_CURRENT_LIST_DIR}"
+    CACHE PATH
+    "Directory containing FreeRTOSConfig.h"
+)
+add_subdirectory(
+    ${CMAKE_SOURCE_DIR}/external/FreeRTOS-Kernel/portable/ThirdParty/GCC/RP2040 
+    FreeRTOS-Kernel
 )
 
-pico_enable_stdio_usb(sensor 1)
-pico_enable_stdio_uart(sensor 0)
-
-pico_add_extra_outputs(sensor)
-
-add_executable(calibracion calibracion.c filter.c)
-
-target_link_libraries(calibracion
-    pico_stdlib
-    hardware_adc
-    hardware_dma
-    pico_multicore
-    #cs_web_server
-    FreeRTOS
+# main executable
+add_executable(firmware
+    main.c
+    hooks.c
 )
 
-pico_enable_stdio_usb(calibracion 1)
-pico_enable_stdio_uart(calibracion 0)
+target_link_libraries(firmware
+    pico_stdlib
+    # hardware_adc
+    # hardware_dma
+    FreeRTOS-Kernel 
+    FreeRTOS-Kernel-Heap4
+)
 
-pico_add_extra_outputs(calibracion)
+pico_enable_stdio_usb(firmware 1)
+pico_enable_stdio_uart(firmware 0)
+# generate uf2
+pico_add_extra_outputs(firmware)
