@@ -2,6 +2,8 @@
 
 build
 .cache
+*.exe
+*.a
 
 __pycache__
 

@@ -1,5 +1,7 @@
-add_subdirectory(lib/lcd)
+# add_subdirectory(lib/lcd)
 add_subdirectory(lib/web_server)
+add_subdirectory(lib/ascii-communcation-protocol)
+
 
 add_executable(sensor main.c filter.c)
 
