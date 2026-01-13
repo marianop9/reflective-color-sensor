@@ -30,12 +30,12 @@ $(LIB_TARGET): $(OBJ_FILES)
 
 # Compile source files into object files
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(INC_DIR)/%.h
-	@mkdir -p $(OBJ_DIR)
+	@mkdir $(OBJ_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # Build the test
 $(TEST_TARGET): $(TEST_FILES) $(LIB_TARGET)
-	$(CC) $(CFLAGS) $^ -o $@
+	$(CC) $(CFLAGS) -g3 $^ -o $@
 
 # Build the example
 $(EXAMPLE_TARGET): $(EXAMPLE_FILES) $(LIB_TARGET)
