@@ -1,7 +1,10 @@
 .vscode
 
 build
+obj
 .cache
+*.exe
+*.a
 
 __pycache__
 

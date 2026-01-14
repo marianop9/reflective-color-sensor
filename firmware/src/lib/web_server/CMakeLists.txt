@@ -16,13 +16,13 @@ target_link_libraries(cs_web_server
 set(WIFI_SSID "" CACHE STRING "Wi-Fi SSID")
 set(WIFI_PASSWORD "" CACHE STRING "Wi-Fi password")
 
-if(WIFI_SSID STREQUAL "")
-    message(FATAL_ERROR "missing WiFi SSID")
-elseif(WIFI_PASSWORD STREQUAL "")
-    message(FATAL_ERROR "missing WiFi password")
+if(WIFI_SSID STREQUAL "" OR WIFI_PASSWORD STREQUAL "")
+    message(WARNING "missing WiFi SSID or Password")
+else()
+    message(STATUS "Wi-Fi configured: ${WIFI_SSID} - ${WIFI_PASSWORD}")
+    target_compile_definitions(cs_web_server PRIVATE WIFI_SSID=${WIFI_SSID} WIFI_PASSWORD=${WIFI_PASSWORD})
 endif()
 
-add_compile_definitions(cs_web_server WIFI_SSID="${WIFI_SSID}" WIFI_PASSWORD="${WIFI_PASSWORD}")
 
 # Crea una librería especial para el contenido estático.
 # Se debe linkear con el ejecutable/librería!!!!
