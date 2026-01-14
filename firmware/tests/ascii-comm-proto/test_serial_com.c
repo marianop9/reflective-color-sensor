@@ -11,9 +11,108 @@ void tearDown(void) {
     // clean stuff up here
 }
 
-void test() {
-    TEST_ASSERT_EQUAL(1, 2);
+void test_parse_command() {
+    char test_buf[] = "&PING,123,321*";
+    acp_command_type_t expected_cmd_type = ACP_CMD_PING;
+
+    acp_command_t cmd;
+    bool result = acp_parse_command(&cmd, test_buf, sizeof(test_buf));
+    TEST_ASSERT_TRUE(result);
+
+    TEST_ASSERT_EQUAL(expected_cmd_type, cmd.type);
+    TEST_ASSERT_EQUAL_STRING("123", cmd.payload1);
+    TEST_ASSERT_EQUAL_STRING("321", cmd.payload2);
 }
+
+void test_parse_command_one_payload() {
+    char test_buf1[] = "&PING,123,*";
+    acp_command_type_t expected_cmd_type = ACP_CMD_PING;
+
+    acp_command_t cmd;
+    bool result = acp_parse_command(&cmd, test_buf1, sizeof(test_buf1));
+    TEST_ASSERT_TRUE(result);
+
+    TEST_ASSERT_EQUAL(expected_cmd_type, cmd.type);
+    TEST_ASSERT_EQUAL_STRING("123", cmd.payload1);
+
+    char test_buf2[] = "&PING,,321*";
+
+    result = acp_parse_command(&cmd, test_buf2, sizeof(test_buf2));
+    TEST_ASSERT_TRUE(result);
+
+    TEST_ASSERT_EQUAL(expected_cmd_type, cmd.type);
+    TEST_ASSERT_EQUAL_STRING("321", cmd.payload2);
+}
+
+void test_parse_command_no_payload() {
+    char test_buf[] = "&PING,,*";
+    acp_command_type_t expected_cmd_type = ACP_CMD_PING;
+
+    acp_command_t cmd;
+    bool result = acp_parse_command(&cmd, test_buf, sizeof(test_buf));
+    TEST_ASSERT_TRUE(result);
+
+    TEST_ASSERT_EQUAL(expected_cmd_type, cmd.type);
+    TEST_ASSERT_EACH_EQUAL_CHAR('\0', cmd.payload1, sizeof(cmd.payload1));
+    TEST_ASSERT_EACH_EQUAL_CHAR('\0', cmd.payload2, sizeof(cmd.payload2));
+}
+
+void test_create_text_response() {
+    acp_response_t resp = {
+        .type = ACP_RESP_TEXT,
+    };
+
+    char payload[] = "TEXT_RESPONSE";
+    // null terminator is not included:
+    resp.len_bytes = strlen(payload);
+    memcpy(resp.payload, payload, resp.len_bytes);
+
+    char expected_resp_str[] = "&TEXT,13,TEXT_RESPONSE*";
+
+    uint8_t buffer[256];
+    bool result = acp_create_response(buffer, &resp);
+    TEST_ASSERT_TRUE(result);
+
+    TEST_ASSERT_EQUAL_STRING_LEN(expected_resp_str, buffer,
+                                 strlen(expected_resp_str));
+}
+
+void test_create_data_response() {
+    acp_response_t resp = {
+        .type = ACP_RESP_DATA,
+    };
+
+    uint8_t payload[] = {0xff, 0x12, 0x32, 0xf9, 0x33, 0x26};
+    size_t payload_length = sizeof(payload);
+    resp.len_bytes = payload_length;
+    memcpy(resp.payload, payload, resp.len_bytes);
+
+    char expected_resp_header[] = "&DATA,6,";
+    size_t expected_resp_header_length = strlen(expected_resp_header);
+
+    uint8_t buffer[256];
+    bool result = acp_create_response(buffer, &resp);
+    TEST_ASSERT_TRUE(result);
+
+    // test matching header ("&type,size,")
+    TEST_ASSERT_EQUAL_STRING_LEN(expected_resp_header, buffer,
+                                 expected_resp_header_length);
+
+    // test matching payload (raw bytes)
+    TEST_ASSERT_EQUAL_UINT8_ARRAY(payload, buffer + expected_resp_header_length,
+                                  payload_length);
+
+    TEST_ASSERT_EQUAL_CHAR(
+        ACP_END_CHAR, buffer[expected_resp_header_length + payload_length]);
+}
+
+// extern bool uint8_to_str(uint8_t num, char *out_buf);
+
+// void test() {
+//     char buf[3];
+//     uint8_to_str(212, buf);
+//     TEST_ASSERT_EQUAL_STRING_LEN("212", buf,3);
+// }
 
 // void test_clear_buffer()
 // {
@@ -215,6 +314,10 @@ void test() {
 // not needed when using generate_test_runner.rb
 int main(void) {
     UNITY_BEGIN();
-    RUN_TEST(test);
+    RUN_TEST(test_parse_command);
+    RUN_TEST(test_parse_command_one_payload);
+    RUN_TEST(test_parse_command_no_payload);
+    RUN_TEST(test_create_text_response);
+    RUN_TEST(test_create_data_response);
     return UNITY_END();
 }

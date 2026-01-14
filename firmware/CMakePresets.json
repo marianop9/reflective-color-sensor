@@ -3,7 +3,7 @@
     "configurePresets": [
         {
             "name": "Test-Host",
-            "description": "Configure preset for test builds from host. Skips any crosscompilatio targets.",
+            "description": "Configure preset for test builds from host. Skips any cross-compilation targets.",
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/tests/build-host",
             "cacheVariables": {

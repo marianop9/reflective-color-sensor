@@ -46,13 +46,13 @@ uint8_t calculate_checksum(const char *buffer) {
  * @brief Converts a string representation of a command into its corresponding
  * enum value.
  *
- * @param str The string representation of the command.
+ * @param str The (null-terminated) string representation of the command.
  * @return The corresponding acp_type_t enum value. Returns ACP_CMD_INVALID if
  * the string does not match any known command.
  */
 acp_command_type_t string_to_command(const char *str) {
     for (acp_command_type_t cmd = 0; cmd < ACP_CMD_COUNT; cmd++) {
-        if (strcmp(str, ACP_COMMAND_LIST[cmd]) == 0) {
+        if (strncmp(str, ACP_COMMAND_LIST[cmd], ACP_COMMAND_STR_SIZE) == 0) {
             return cmd;
         }
     }
@@ -90,6 +90,30 @@ const char *response_to_string(acp_response_type_t type) {
     return NULL;
 }
 
+size_t uint8_to_str(uint8_t num, char *out_buf) {
+    if (num == 0) {
+        out_buf[0] = '0';
+        return 1;
+    }
+
+    char buf[3];
+    size_t parsed = 0;
+
+    while (num > 0) {
+        buf[parsed] = num % 10 + '0';
+        parsed += 1;
+        num /= 10;
+    }
+
+    int j = 0;
+    int i = parsed;
+    for (; i > 0; j++, i--) {
+        out_buf[j] = buf[i - 1];
+    }
+
+    return parsed;
+}
+
 /* -------------------- PUBLIC API -------------------- */
 
 // bool acp_create_command(char *buffer, acp_command_t cmd) {
@@ -107,45 +131,63 @@ const char *response_to_string(acp_response_type_t type) {
 // }
 
 bool acp_parse_command(acp_command_t *cmd, const char *buffer, int length) {
-    if (buffer[length - 1] == '\n' || buffer[length - 1] == '\r') {
-        length--;
+    // attempt to remove any excess characters to make parsing easier.
+    if (buffer[length - 1] == '\0') {
+        length -= 1;
     }
 
-    if (length < ACP_MINIMUM_DATA_LENGTH || buffer[0] != ACP_START_CHAR ||
-        buffer[length - 3] != ACP_END_CHAR) {
+    if (buffer[length - 1] == '\n') {
+        length -= 1;
+        if (buffer[length - 1] == '\r') {
+            length -= 1;
+        }
+    }
+
+    if (length < ACP_MINIMUM_DATA_LENGTH) {
+        return false;
+    }
+
+    char start_char = buffer[0];
+    char end_char = buffer[length - 1];
+    if (start_char != ACP_START_CHAR || end_char != ACP_END_CHAR) {
         return false;
     }
 
     memset(cmd, 0, sizeof(acp_command_t));
 
-    char command_str[ACP_COMMAND_STR_SIZE];
-    char checksum[ACP_CHECKSUM_STR_SIZE];
+    char separator[] = {ACP_SEPARATOR_CHAR};
+    // First separator (command_string-payload1)
+    size_t sep1_index = strcspn(buffer, separator);
+    // Second separator (payload1-payload2)
+    size_t sep2_index =
+        strcspn(buffer + sep1_index + 1, separator) + sep1_index + 1;
 
-    /* the length of all parts of the command is hardcoded, rendering most
-        ACP_*_SIZE defines useless (e.g., ACP_COMMAND_STR_SIZE)
-
-        this will also fail if no payloads are provided. 
-    */
-    int parsed = sscanf(buffer, "&%10[^,],%10[^,],%10[^*]*%2[^*]", command_str,
-                        cmd->payload1, cmd->payload2, checksum);
-
-    cmd->type = string_to_command(command_str);
-
-    if (parsed != ACP_CMD_COMPONENTS || !acp_is_valid_command(cmd))
-        return false;
-
-    cmd->checksum = strtol(checksum, NULL, 16);
-
-    char temp[256];
-    if (length - 2 >= (int)sizeof(temp)) {
+    size_t command_str_len = sep1_index - 1;
+    if (command_str_len >= ACP_COMMAND_STR_SIZE) {
         return false;
     }
 
-    strncpy(temp, buffer, length - 2);
-    temp[length - 2] = '\0';
+    char command_str[ACP_COMMAND_STR_SIZE];
+    memcpy(command_str, buffer + 1, command_str_len);
+    command_str[command_str_len] = '\0';
+    cmd->type = string_to_command(command_str);
 
-    if (calculate_checksum(temp) != cmd->checksum) {
-        return false;
+    size_t payload1_length = sep2_index - sep1_index - 1;
+    if (payload1_length > 0) {
+        if (payload1_length >= ACP_PAYLOAD1_SIZE) {
+            payload1_length = ACP_PAYLOAD1_SIZE - 1;
+        }
+        memcpy(cmd->payload1, buffer + sep1_index + 1, payload1_length);
+        cmd->payload1[payload1_length] = '\0';
+    }
+
+    size_t payload2_length = length - sep2_index - 2;
+    if (payload2_length > 0) {
+        if (payload2_length >= ACP_PAYLOAD2_SIZE) {
+            payload2_length = ACP_PAYLOAD2_SIZE - 1;
+        }
+        memcpy(cmd->payload2, buffer + sep2_index + 1, payload2_length);
+        cmd->payload1[payload2_length] = '\0';
     }
 
     return true;
@@ -158,30 +200,31 @@ bool acp_is_valid_command(const acp_command_t *cmd) {
 bool acp_create_response(uint8_t *buffer, acp_response_t *resp) {
     // could add checks to ensure buffer is big enough
     const char *resp_str = response_to_string(resp->type);
-    if (resp_str == NULL)
+    if (resp_str == NULL) {
         return false;
-
+    }
+    
     int n = 0;
     const size_t resp_strn_len = strlen(resp_str);
 
+    // start char
     buffer[n] = ACP_START_CHAR;
     n += 1;
-
+    // response_type (text)
     memcpy(buffer + n, resp_str, resp_strn_len);
     n += resp_strn_len;
-
+    // separator char
     buffer[n] = ',';
     n += 1;
-
-    buffer[n] = resp->len_bytes;
-    n += 1;
-
+    // response size (text)
+    n += uint8_to_str(resp->len_bytes, buffer + n);
+    // separator char
     buffer[n] = ',';
     n += 1;
-
+    // response payload (raw bytes)
     memcpy(buffer + n, resp->payload, resp->len_bytes);
     n += resp->len_bytes;
-
+    // end char
     buffer[n] = ACP_END_CHAR;
 
     return true;

@@ -4,7 +4,7 @@
  */
 
 /** Expected formats:
- * 
+ *
  * COMMAND
  * (1) ACP_START_CHAR           (&)
  * (2) CMD_STR                  req. max 10 chars
@@ -13,14 +13,14 @@
  * (5) ACP_SEPARATOR_CHAR       (,)
  * (6) PAYLOAD_2                opt. max 10 chars
  * (7) ACP_END_CHAR             (*)
- * (8) CHECKSUM                 req. 8-bit checksum
- * 
+ * (8) CHECKSUM                 opt. 8-bit checksum --- IGNORE!
+ *
  * RESPONSE
  * Actually not ASCII-encoded, but easier to work with.
  * (1) ACP_START_CHAR           (&)
- * (2) RESP_STR                 req. ASCII chars
+ * (2) RESP_STR                 req. ASCII text
  * (3) ACP_SEPARATOR_CHAR       (,)
- * (4) PAYLOAD_LENGTH_BYTES     req. (specified in BYTES) raw, 8-bit number
+ * (4) PAYLOAD_LENGTH_BYTES     req. ASCII nums (length specified in BYTES)
  * (5) ACP_SEPARATOR_CHAR       (,)
  * (6) PAYLOAD                  req. raw data. length is PAYLOAD_LENGTH bytes.
  * (7) ACP_END_CHAR             (*)
@@ -44,7 +44,7 @@
 /** Command buffer size. */
 #define ACP_CMD_BUFFER_SIZE 128
 /** Minimum length of command buffer. */
-#define ACP_MINIMUM_DATA_LENGTH 8
+#define ACP_MINIMUM_DATA_LENGTH 5
 /** Number of components expected in a parsed command. */
 #define ACP_CMD_COMPONENTS 4
 /** Maximum size for the command string. */
@@ -54,7 +54,7 @@
 /** Maximum size for the second payload. */
 #define ACP_PAYLOAD2_SIZE 10
 /** Maximum size for the checksum string. */
-#define ACP_CHECKSUM_STR_SIZE 10
+// #define ACP_CHECKSUM_STR_SIZE 2
 /** Maximum size for response payload (in bytes) */
 #define ACP_RESP_PAYLOAD_SIZE 128
 
@@ -77,10 +77,10 @@ typedef enum {
  * @brief Structure representing a serial communication command.
  */
 typedef struct {
-    acp_command_type_t type;           /**< The command type. */
+    acp_command_type_t type;          /**< The command type. */
     char payload1[ACP_PAYLOAD1_SIZE]; /**< The first payload data. */
     char payload2[ACP_PAYLOAD2_SIZE]; /**< The second payload data. */
-    uint8_t checksum; /**< Checksum for data integrity verification. */
+    // uint8_t checksum; /**< Checksum for data integrity verification. */
 } acp_command_t;
 
 /**
@@ -101,7 +101,7 @@ typedef enum {
 typedef struct {
     acp_response_type_t type;
     uint8_t len_bytes;
-    /** Raw response payload. 
+    /** Raw response payload.
      * If original size is larger than 8-bits, the caller is responsible for
      * proper alignment, endianness, etc.
      */
@@ -144,8 +144,9 @@ bool acp_is_valid_command(const acp_command_t *cmd);
  * @brief Creates a response string for serial communication from a
  * `acp_response_t` structure.
  *
- * @param buffer The buffer to store the formatted response.
- * @param cmd Pointer to the `acp_response_t` structure.
+ * @param buffer The buffer to store the formatted response. Should have at
+ * least `resp.len_bytes + 12` capacity.
+ * @param resp Pointer to the `acp_response_t` structure.
  * @return true if creation was successful, false otherwise.
  */
 bool acp_create_response(uint8_t *buffer, acp_response_t *resp);
