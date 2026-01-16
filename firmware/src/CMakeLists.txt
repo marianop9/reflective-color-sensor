@@ -16,6 +16,11 @@ if (CMAKE_CROSSCOMPILING)
         FreeRTOS-Kernel
     )
     
+    # bsp
+    add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/bsp)
+    # drivers
+    add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/drivers)
+    
     # main executable
     add_executable(firmware
         main.c
