@@ -57,41 +57,41 @@ void test_parse_command_no_payload() {
     TEST_ASSERT_EACH_EQUAL_CHAR('\0', cmd.payload2, sizeof(cmd.payload2));
 }
 
-void test_create_text_response() {
+void test_format_text_response() {
     acp_response_t resp = {
         .type = ACP_RESP_TEXT,
     };
 
     char payload[] = "TEXT_RESPONSE";
     // null terminator is not included:
-    resp.len_bytes = strlen(payload);
-    memcpy(resp.payload, payload, resp.len_bytes);
+    resp.payload_len_bytes = strlen(payload);
+    memcpy(resp.payload, payload, resp.payload_len_bytes);
 
-    char expected_resp_str[] = "&TEXT,13,TEXT_RESPONSE*";
+    char expected_resp_str[] = "&TEXT,13;TEXT_RESPONSE";
 
     uint8_t buffer[256];
-    bool result = acp_create_response(buffer, &resp);
+    bool result = acp_format_response(buffer, &resp);
     TEST_ASSERT_TRUE(result);
 
     TEST_ASSERT_EQUAL_STRING_LEN(expected_resp_str, buffer,
                                  strlen(expected_resp_str));
 }
 
-void test_create_data_response() {
+void test_format_data_response() {
     acp_response_t resp = {
         .type = ACP_RESP_DATA,
     };
 
     uint8_t payload[] = {0xff, 0x12, 0x32, 0xf9, 0x33, 0x26};
     size_t payload_length = sizeof(payload);
-    resp.len_bytes = payload_length;
-    memcpy(resp.payload, payload, resp.len_bytes);
+    resp.payload_len_bytes = payload_length;
+    memcpy(resp.payload, payload, resp.payload_len_bytes);
 
-    char expected_resp_header[] = "&DATA,6,";
+    char expected_resp_header[] = "&DATA,6;";
     size_t expected_resp_header_length = strlen(expected_resp_header);
 
     uint8_t buffer[256];
-    bool result = acp_create_response(buffer, &resp);
+    bool result = acp_format_response(buffer, &resp);
     TEST_ASSERT_TRUE(result);
 
     // test matching header ("&type,size,")
@@ -101,9 +101,6 @@ void test_create_data_response() {
     // test matching payload (raw bytes)
     TEST_ASSERT_EQUAL_UINT8_ARRAY(payload, buffer + expected_resp_header_length,
                                   payload_length);
-
-    TEST_ASSERT_EQUAL_CHAR(
-        ACP_END_CHAR, buffer[expected_resp_header_length + payload_length]);
 }
 
 // extern bool uint8_to_str(uint8_t num, char *out_buf);
@@ -317,7 +314,7 @@ int main(void) {
     RUN_TEST(test_parse_command);
     RUN_TEST(test_parse_command_one_payload);
     RUN_TEST(test_parse_command_no_payload);
-    RUN_TEST(test_create_text_response);
-    RUN_TEST(test_create_data_response);
+    RUN_TEST(test_format_text_response);
+    RUN_TEST(test_format_data_response);
     return UNITY_END();
 }
