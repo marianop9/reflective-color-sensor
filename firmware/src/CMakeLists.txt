@@ -1,5 +1,3 @@
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/lib/ascii-comm-proto)
-
 # avoid including pico-sdk, freeRTOS, etc for host builds (tests) 
 if (CMAKE_CROSSCOMPILING)
     # init pico-sdk
@@ -15,11 +13,10 @@ if (CMAKE_CROSSCOMPILING)
         ${CMAKE_SOURCE_DIR}/external/FreeRTOS-Kernel/portable/ThirdParty/GCC/RP2040 
         FreeRTOS-Kernel
     )
-    
-    # bsp
-    add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/bsp)
-    # drivers
-    add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/drivers)
+
+    add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/lib/ascii-comm-proto)
+    add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/lib/usbproto)
+
     
     # main executable
     add_executable(firmware
@@ -33,6 +30,7 @@ if (CMAKE_CROSSCOMPILING)
         # hardware_dma
         FreeRTOS-Kernel 
         FreeRTOS-Kernel-Heap4
+        usbproto
     )
     
     pico_enable_stdio_usb(firmware 1)

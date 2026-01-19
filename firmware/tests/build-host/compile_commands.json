@@ -1,0 +1,14 @@
+[
+{
+  "directory": "/Users/federico/.gitrep/reflective-color-sensor/firmware/tests/build-host",
+  "command": "/usr/bin/cc -I/Users/federico/.gitrep/reflective-color-sensor/firmware/tests/unity -g -std=gnu11 -arch arm64 -o tests/CMakeFiles/unity.dir/unity/unity.c.o -c /Users/federico/.gitrep/reflective-color-sensor/firmware/tests/unity/unity.c",
+  "file": "/Users/federico/.gitrep/reflective-color-sensor/firmware/tests/unity/unity.c",
+  "output": "tests/CMakeFiles/unity.dir/unity/unity.c.o"
+},
+{
+  "directory": "/Users/federico/.gitrep/reflective-color-sensor/firmware/tests/build-host",
+  "command": "/usr/bin/cc -I/Users/federico/.gitrep/reflective-color-sensor/firmware/tests/unity -g -std=gnu11 -arch arm64 -Wall -Wextra -Wpedantic -Werror -o tests/CMakeFiles/test_ascii_comm_proto.dir/ascii-comm-proto/test_serial_com.c.o -c /Users/federico/.gitrep/reflective-color-sensor/firmware/tests/ascii-comm-proto/test_serial_com.c",
+  "file": "/Users/federico/.gitrep/reflective-color-sensor/firmware/tests/ascii-comm-proto/test_serial_com.c",
+  "output": "tests/CMakeFiles/test_ascii_comm_proto.dir/ascii-comm-proto/test_serial_com.c.o"
+}
+]
