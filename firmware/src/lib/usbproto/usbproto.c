@@ -44,39 +44,3 @@ void process_commands(void) {
         }
     }
 }
-//     static uint32_t rx_idx = 0;
-
-//     if(tud_cdc_available()) {
-//         uint8_t c;
-//         uint32_t count = tud_cdc_read(&c, sizeof(c));
-
-//         if(count != 0 && rx_idx < MAX_COMMAND_LEN) {
-//             rx_buffer[rx_idx] = c;
-//             rx_idx++;
-//         }
-
-//         if(c == ACP_END_CHAR) {
-//             acp_command_t cmd;
-//             bool result = acp_parse_command(&cmd, (char*)rx_buffer, rx_idx);
-
-//             if(result) {
-//                 if(cmd.type == ACP_CMD_ADC) {
-//                     sendData();
-//                 }
-//             }
-
-//             // Reset buffer index for next command
-//             rx_idx = 0;
-//             memset(rx_buffer, 0, MAX_COMMAND_LEN);
-//         }
-//     }
-//     else{
-//         char buffer[] = "HOLIS :D";
-//         if(tud_cdc_connected()) {
-//             tud_cdc_write(buffer, sizeof(buffer)+1);
-//             tud_cdc_write_flush();
-//         }
-//         sleep_ms(1000);
-//     }
-
-// }
