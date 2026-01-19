@@ -17,7 +17,6 @@ if (CMAKE_CROSSCOMPILING)
     add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/lib/ascii-comm-proto)
     add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/lib/usbproto)
 
-    
     # main executable
     add_executable(firmware
         main.c
@@ -31,6 +30,7 @@ if (CMAKE_CROSSCOMPILING)
         FreeRTOS-Kernel 
         FreeRTOS-Kernel-Heap4
         usbproto
+        ascii-comm-proto
     )
     
     pico_enable_stdio_usb(firmware 1)

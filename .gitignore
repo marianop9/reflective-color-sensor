@@ -15,7 +15,7 @@ __pycache__
 *.DS_Store
 
 # entorno virtual
-venv/
+venvUSB/
 
 # archivos compilados
 __pycache__/
