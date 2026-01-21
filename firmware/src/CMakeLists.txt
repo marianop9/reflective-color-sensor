@@ -1,3 +1,5 @@
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/lib/ascii-comm-proto)
+
 # avoid including pico-sdk, freeRTOS, etc for host builds (tests) 
 if (CMAKE_CROSSCOMPILING)
     # init pico-sdk
@@ -14,7 +16,6 @@ if (CMAKE_CROSSCOMPILING)
         FreeRTOS-Kernel
     )
 
-    add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/lib/ascii-comm-proto)
     add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/lib/usbproto)
 
     # main executable

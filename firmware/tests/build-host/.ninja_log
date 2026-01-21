@@ -1,4 +1,0 @@
-# ninja log v7
-2	88	1768645379667029838	src/lib/ascii-comm-proto/CMakeFiles/ascii-comm-proto.dir/src/serial_com.c.o	4b61fc288ff92ae5
-1	101	1768645379666436347	tests/CMakeFiles/unity.dir/unity/unity.c.o	995de67c926a7cf3
-2	100	1768647089718370649	tests/libunity.a	bd30494a8abe63bf

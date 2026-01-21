@@ -21,7 +21,7 @@
  * (2) RESP_STR                 req. ASCII text
  * (3) ACP_SEPARATOR_CHAR       (,)
  * (4) PAYLOAD_LENGTH_BYTES     req. ASCII nums (length specified in BYTES)
- * (5) ACP_SEPARATOR_CHAR       (,)
+ * (5) ACP_PAYLOAD_START_CHAR   (;)
  * (6) PAYLOAD                  req. raw data. length is PAYLOAD_LENGTH bytes.
  * (7) ACP_END_CHAR             (*)
  */
@@ -37,8 +37,10 @@
 #define ACP_START_CHAR '&'
 /**< Character that signifies the end of a command. */
 #define ACP_END_CHAR '*'
-/**< Character used to separate commands and payloads. */
+/**< Character used to separate ASCII commands/arguments. */
 #define ACP_SEPARATOR_CHAR ','
+/**< Character used to mark the start of the (potentially binary) payload. */
+#define ACP_PAYLOAD_START_CHAR ';'
 
 // Sizes and definitions
 /** Command buffer size. */
@@ -56,7 +58,7 @@
 /** Maximum size for the checksum string. */
 // #define ACP_CHECKSUM_STR_SIZE 2
 /** Maximum size for response payload (in bytes) */
-#define ACP_RESP_PAYLOAD_SIZE 128
+#define ACP_RESP_PAYLOAD_SIZE 256
 
 /**
  * @brief Enum defining the available commands.
@@ -100,7 +102,7 @@ typedef enum {
  */
 typedef struct {
     acp_response_type_t type;
-    uint8_t len_bytes;
+    uint8_t payload_len_bytes;
     /** Raw response payload.
      * If original size is larger than 8-bits, the caller is responsible for
      * proper alignment, endianness, etc.
@@ -140,15 +142,18 @@ bool acp_parse_command(acp_command_t *cmd, const char *buffer, int length);
  */
 bool acp_is_valid_command(const acp_command_t *cmd);
 
+bool acp_build_response(acp_response_t *resp, acp_response_type_t type,
+                        uint8_t payload_len_bytes, const uint8_t *payload);
+
 /**
  * @brief Creates a response string for serial communication from a
  * `acp_response_t` structure.
  *
  * @param buffer The buffer to store the formatted response. Should have at
- * least `resp.len_bytes + 12` capacity.
+ * least `resp.payload_len_bytes + 12` capacity.
  * @param resp Pointer to the `acp_response_t` structure.
- * @return true if creation was successful, false otherwise.
+ * @return The number of bytes written to `buffer`.
  */
-/*bool*/int acp_create_response(uint8_t *buffer, acp_response_t *resp);
+size_t acp_format_response(uint8_t *buffer, acp_response_t *resp);
 
 #endif // ACP_SERIAL_COM_H

@@ -1,9 +1,0 @@
-{
-	"InstallScripts" : 
-	[
-		"/Users/federico/.gitrep/reflective-color-sensor/firmware/tests/build-host/cmake_install.cmake",
-		"/Users/federico/.gitrep/reflective-color-sensor/firmware/tests/build-host/tests/cmake_install.cmake",
-		"/Users/federico/.gitrep/reflective-color-sensor/firmware/tests/build-host/src/cmake_install.cmake"
-	],
-	"Parallel" : false
-}
