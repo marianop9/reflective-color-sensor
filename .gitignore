@@ -13,3 +13,10 @@ __pycache__
 
 # macOS temporal files
 *.DS_Store
+
+# entorno virtual
+venvUSB/
+
+# archivos compilados
+__pycache__/
+*.pyc

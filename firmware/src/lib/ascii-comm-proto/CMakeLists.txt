@@ -1,4 +1,4 @@
-add_library(ascii-comm-proto OBJECT)
+add_library(ascii-comm-proto STATIC)
 
 target_sources(ascii-comm-proto PRIVATE src/serial_com.c)
 

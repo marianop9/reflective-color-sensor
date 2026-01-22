@@ -6,20 +6,20 @@ from . import decoders
 
 
 class Response:
-    def __init__(self, type: Literal["text", "data"], data: str | tuple[int]):
+    def __init__(self, type: Literal["TEXT", "DATA"], data: str | tuple[int]):
         self.type = type
-        self.data = data
+        self.payload = data
 
     def is_error(self):
-        return self.type == "text" and self.data.startswith("ERR")
+        return self.type == "TEXT" and self.data.startswith("ERR")
 
 
 _port_settings = dict(
-    baudrate=115200,
+    baudrate=9600,
     parity=serial.PARITY_NONE,
     stopbits=serial.STOPBITS_ONE,
     bytesize=serial.EIGHTBITS,
-    timeout=3,
+    # timeout=3,
 )
 
 
@@ -115,7 +115,7 @@ def build_response(msg: bytes, should_print=False) -> Response:
     if len(msg) <= 2:
         return ''
 
-    id, length = decoders.decode_header(msg[:2])
+    id, length = decoders._decode_header(msg[:2])
 
     if id == ID_TEXT:
         return Response(type='text', data=decoders.decode_text(msg, length))

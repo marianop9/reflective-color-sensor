@@ -171,6 +171,7 @@ bool acp_parse_command(acp_command_t *cmd, const char *buffer, int length) {
     memcpy(command_str, buffer + 1, command_str_len);
     command_str[command_str_len] = '\0';
     cmd->type = string_to_command(command_str);
+    
 
     size_t payload1_length = sep2_index - sep1_index - 1;
     if (payload1_length > 0) {
@@ -187,7 +188,7 @@ bool acp_parse_command(acp_command_t *cmd, const char *buffer, int length) {
             payload2_length = ACP_PAYLOAD2_SIZE - 1;
         }
         memcpy(cmd->payload2, buffer + sep2_index + 1, payload2_length);
-        cmd->payload1[payload2_length] = '\0';
+        cmd->payload2[payload2_length] = '\0';
     }
 
     return true;
@@ -197,14 +198,28 @@ bool acp_is_valid_command(const acp_command_t *cmd) {
     return cmd->type != ACP_CMD_INVALID;
 }
 
-bool acp_create_response(uint8_t *buffer, acp_response_t *resp) {
+bool acp_build_response(acp_response_t *resp, acp_response_type_t type,
+                        uint8_t payload_len_bytes, const uint8_t *payload) {
+
+    if (payload_len_bytes > ACP_RESP_PAYLOAD_SIZE) {
+        return false;
+    }
+
+    resp->type = type;
+    resp->payload_len_bytes = payload_len_bytes;
+    memcpy(resp->payload, payload, payload_len_bytes);
+
+    return true;
+}
+
+size_t acp_format_response(uint8_t *buffer, acp_response_t *resp) {
     // could add checks to ensure buffer is big enough
     const char *resp_str = response_to_string(resp->type);
     if (resp_str == NULL) {
         return false;
     }
-    
-    int n = 0;
+
+    size_t n = 0;
     const size_t resp_strn_len = strlen(resp_str);
 
     // start char
@@ -214,20 +229,22 @@ bool acp_create_response(uint8_t *buffer, acp_response_t *resp) {
     memcpy(buffer + n, resp_str, resp_strn_len);
     n += resp_strn_len;
     // separator char
-    buffer[n] = ',';
+    buffer[n] = ACP_SEPARATOR_CHAR;
     n += 1;
     // response size (text)
-    n += uint8_to_str(resp->len_bytes, buffer + n);
-    // separator char
-    buffer[n] = ',';
+    n += uint8_to_str(resp->payload_len_bytes, buffer + n);
+    // payload separator char
+    buffer[n] = ACP_PAYLOAD_START_CHAR;
     n += 1;
     // response payload (raw bytes)
-    memcpy(buffer + n, resp->payload, resp->len_bytes);
-    n += resp->len_bytes;
-    // end char
-    buffer[n] = ACP_END_CHAR;
+    memcpy(buffer + n, resp->payload, resp->payload_len_bytes);
+    n += resp->payload_len_bytes;
+    
+    // // end char
+    // buffer[n] = ACP_END_CHAR;
+    // n += 1;
 
-    return true;
+    return n;
 }
 
 /*
