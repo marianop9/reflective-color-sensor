@@ -1,3 +1,4 @@
+import sys
 import cmd
 
 from .serialpal import SerialPal, Response
@@ -47,7 +48,8 @@ class Cli(cmd.Cmd):
     def receive(self, should_print=False) -> Response:
         result = self.serial.receive()
         if should_print:
-            print(f"RECV: ({result.type}) {result.data}")
+            print(f"RECV: {result}")
+            # print(f"RECV: ({result.type}) {result.data}")
 
         return result
 
@@ -128,6 +130,10 @@ def build_rgb(input: list[str]) -> int:
 def main():
     try:
         cli = Cli()
+        if len(sys.argv) > 1:
+            if not cli.serial.connect(sys.argv[1]):
+                return
+
         cli.cmdloop()
     except KeyboardInterrupt:
         print("exiting...")

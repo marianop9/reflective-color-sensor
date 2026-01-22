@@ -171,7 +171,10 @@ bool acp_parse_command(acp_command_t *cmd, const char *buffer, int length) {
     memcpy(command_str, buffer + 1, command_str_len);
     command_str[command_str_len] = '\0';
     cmd->type = string_to_command(command_str);
-    
+
+    if (!acp_is_valid_command(cmd)) {
+        return false;
+    }
 
     size_t payload1_length = sep2_index - sep1_index - 1;
     if (payload1_length > 0) {
@@ -239,7 +242,7 @@ size_t acp_format_response(uint8_t *buffer, acp_response_t *resp) {
     // response payload (raw bytes)
     memcpy(buffer + n, resp->payload, resp->payload_len_bytes);
     n += resp->payload_len_bytes;
-    
+
     // // end char
     // buffer[n] = ACP_END_CHAR;
     // n += 1;

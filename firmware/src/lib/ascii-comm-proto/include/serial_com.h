@@ -43,8 +43,6 @@
 #define ACP_PAYLOAD_START_CHAR ';'
 
 // Sizes and definitions
-/** Command buffer size. */
-#define ACP_CMD_BUFFER_SIZE 128
 /** Minimum length of command buffer. */
 #define ACP_MINIMUM_DATA_LENGTH 5
 /** Number of components expected in a parsed command. */
@@ -55,6 +53,9 @@
 #define ACP_PAYLOAD1_SIZE 10
 /** Maximum size for the second payload. */
 #define ACP_PAYLOAD2_SIZE 10
+/** Command buffer size. (A command has 4 control characters) */
+#define ACP_CMD_MAX_SIZE                                                   \
+    (ACP_COMMAND_STR_SIZE + ACP_PAYLOAD1_SIZE + ACP_PAYLOAD2_SIZE + 4)
 /** Maximum size for the checksum string. */
 // #define ACP_CHECKSUM_STR_SIZE 2
 /** Maximum size for response payload (in bytes) */
@@ -70,7 +71,6 @@
 typedef enum {
     ACP_CMD_PING = 0,
     ACP_CMD_MEM,
-    ACP_CMD_TOGGLE_LED, // test onboard led
     ACP_CMD_ADC,
     ACP_CMD_SET_LED,
     ACP_CMD_COUNT,  /**< Total number of commands. */

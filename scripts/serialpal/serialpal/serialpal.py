@@ -1,8 +1,9 @@
 import serial
 import serial.tools.list_ports
 from typing import Literal
+import struct
 
-from . import decoders
+# from . import decoders
 
 
 class Response:
@@ -19,7 +20,7 @@ _port_settings = dict(
     parity=serial.PARITY_NONE,
     stopbits=serial.STOPBITS_ONE,
     bytesize=serial.EIGHTBITS,
-    # timeout=3,
+    timeout=5,
 )
 
 
@@ -45,7 +46,7 @@ class SerialPal():
     def close(self):
         self.serial_port.close()
 
-    def connect(self, port: str):
+    def connect(self, port: str) -> bool:
         """Connect to a specific port by index (must call `ports` first)
 
         Alternatively, provide the full port name (e.g., COMx)
@@ -66,32 +67,61 @@ class SerialPal():
         try:
             self.serial_port.open()
         except serial.SerialException as e:
-            print("failed to open port: {}", e)
-        else:
-            print(f"{self.serial_port.port} open!")
+            print("failed to open port: ", e)
+            return False
 
-    def receive(self) -> Response:
+        print(f"{self.serial_port.port} open!")
+        return True
+
+    def receive(self):
         if not self.serial_port.is_open:
             print("no open ports")
             return ""
 
-        recv = self.serial_port.read_until()
-        return build_response(recv)
+        recv = self.serial_port.read_until(b";", 12)
+        header = recv.decode("ascii")
 
-    def send(self, arg):
+        if not header.startswith("&"):
+            return "unknwon resp: {}".format(header)
+
+        parts = header[1:-1].split(",")
+        if len(parts) != 2:
+            return "unknwon resp: {}".format(header)
+
+        resp_type = parts[0]
+        payload_len_bytes = int(parts[1])
+
+        if resp_type != "TEXT" and resp_type != "DATA":
+            return "unknown resp type: \"{}\"".format(header)
+
+        raw_payload = self.serial_port.read(payload_len_bytes)
+        if len(raw_payload) == 0:
+            return "received no payload for \"{}\"".format(header)
+
+        payload: str | tuple[int]
+        if resp_type == "TEXT":
+            payload = raw_payload.decode("ascii")
+        elif resp_type == "DATA":
+            payload = struct.unpack("<{}H".format(
+                int(payload_len_bytes/2)), raw_payload)
+
+        return "{} ({}): {}".format(resp_type, payload_len_bytes, payload)
+
+    def send(self, cmd: str, *, arg1="", arg2=""):
         if not self.serial_port.is_open:
             print("no open ports")
             return
 
-        cmd: str
+        cmd_fmt = "&{},{},{}*"
+        out: bytes
         try:
-            cmd = (str(arg) + "\n").encode("ascii")
+            out = cmd_fmt.format(cmd, arg1, arg2).encode("ascii")
         except UnicodeEncodeError:
             print("command can't be ASCII-encoded")
             return
 
-        n = self.serial_port.write(cmd)
-        status = "OK" if n == len(cmd) else "ERR"
+        n = self.serial_port.write(out)
+        status = "OK" if n == len(out) else "ERR"
         print(f"{status} ({n})")
 
     def set_led(self, idx: int, rgb: int):
@@ -99,26 +129,26 @@ class SerialPal():
         self.send(cmd)
 
 
-def build_response(msg: bytes, should_print=False) -> Response:
-    """ Expected format:
+# def build_response(msg: bytes, should_print=False) -> Response:
+#     """ Expected format:
 
-        id/type  | payload_length  | payload            | \\n
+#         id/type  | payload_length  | payload            | \\n
 
-        (uint8_t)| (uint8_t)       | (length*uint16_t)  | (char)
-    """
-    ID_TEXT = 0
-    ID_U16 = 1
+#         (uint8_t)| (uint8_t)       | (length*uint16_t)  | (char)
+#     """
+#     ID_TEXT = 0
+#     ID_U16 = 1
 
-    if should_print:
-        print(msg)
+#     if should_print:
+#         print(msg)
 
-    if len(msg) <= 2:
-        return ''
+#     if len(msg) <= 2:
+#         return ''
 
-    id, length = decoders._decode_header(msg[:2])
+#     id, length = decoders._decode_header(msg[:2])
 
-    if id == ID_TEXT:
-        return Response(type='text', data=decoders.decode_text(msg, length))
+#     if id == ID_TEXT:
+#         return Response(type='text', data=decoders.decode_text(msg, length))
 
-    if id == ID_U16:
-        return Response(type='data', data=decoders.decode_data(msg, length))
+#     if id == ID_U16:
+#         return Response(type='data', data=decoders.decode_data(msg, length))
