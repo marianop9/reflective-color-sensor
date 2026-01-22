@@ -171,6 +171,7 @@ bool acp_parse_command(acp_command_t *cmd, const char *buffer, int length) {
     memcpy(command_str, buffer + 1, command_str_len);
     command_str[command_str_len] = '\0';
     cmd->type = string_to_command(command_str);
+    
 
     size_t payload1_length = sep2_index - sep1_index - 1;
     if (payload1_length > 0) {
@@ -187,7 +188,7 @@ bool acp_parse_command(acp_command_t *cmd, const char *buffer, int length) {
             payload2_length = ACP_PAYLOAD2_SIZE - 1;
         }
         memcpy(cmd->payload2, buffer + sep2_index + 1, payload2_length);
-        cmd->payload1[payload2_length] = '\0';
+        cmd->payload2[payload2_length] = '\0';
     }
 
     return true;
