@@ -59,6 +59,8 @@
 // #define ACP_CHECKSUM_STR_SIZE 2
 /** Maximum size for response payload (in bytes) */
 #define ACP_RESP_PAYLOAD_SIZE 256
+/** Maximum size for response message (in bytes) */
+#define ACP_RESP_MAX_SIZE (12 + ACP_RESP_PAYLOAD_SIZE)
 
 /**
  * @brief Enum defining the available commands.
