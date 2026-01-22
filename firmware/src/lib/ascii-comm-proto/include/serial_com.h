@@ -77,6 +77,7 @@ typedef enum {
     ACP_CMD_INVALID /**< Invalid command. */
 } acp_command_type_t;
 
+
 /**
  * @brief Structure representing a serial communication command.
  */
