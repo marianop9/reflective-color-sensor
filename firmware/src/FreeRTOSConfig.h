@@ -104,8 +104,8 @@
  */
  
  /* SMP port only */
- #define configNUM_CORES                         2
- // indicates which core should handle the SysTick:
+//  #define configNUM_CORES                         2
+// indicates which core should handle the SysTick:
  #define configTICK_CORE                         0
  #define configRUN_MULTIPLE_PRIORITIES           0
  

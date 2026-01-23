@@ -8,9 +8,25 @@
 #include "hardware/gpio.h"
 #include "pico/stdlib.h"
 
+#include "board.h"
+#include "drivers/adc.h"
 #include "serial_com.h"
 
 #define TASK_DEFAULT_PRIORITY 10
+
+#define TEST_MSG                                                               \
+    ("\0\0\0\0\0\0\0\0\0aaaa\x22\xf1xxxxa\0\0\0\x22aaa\xf1xxxx\x22a"           \
+     "aaa\xf1xxxx\x22aaaax"                                                    \
+     "\xf1xxx\x22aaaa\xf1xxxxaaaaaaaaaa\xf1\0\0xxxxaaaaaaaaaa\xf1xx"           \
+     "xxaa"                                                                    \
+     "aaaaaaaa\xf1xxxx")
+
+#define TEST_DATA                                                              \
+    ((uint16_t[]){0xff22, 0xff22, 0xff22, 0xff22, 0xff22, 0x0011, 0x0011,      \
+                  0x0011, 0x0011, 0x0011})
+
+#define ADC_NUM_SAMPLES 40
+uint16_t adc_buffer[ADC_NUM_SAMPLES] = {0};
 
 /* Blink pattern
  * - 250 ms  : device not mounted
@@ -29,8 +45,7 @@ static uint32_t blink_interval_ms = BLINK_NOT_MOUNTED;
 TaskHandle_t usb_task_handle = NULL;
 TaskHandle_t worker_task_handle = NULL;
 MessageBufferHandle_t tx_msg_buffer;
-
-acp_command_t current_cmd;
+QueueHandle_t cmd_queue;
 
 void status_led_init() {
     gpio_init(PICO_DEFAULT_LED_PIN);
@@ -53,10 +68,36 @@ void led_task(void *arg) {
     }
 }
 
+/** Arrange a u16 value using little-endian format */
+static inline void format_u16_le(uint8_t *dst, uint16_t v) {
+    dst[0] = (uint8_t)(v & 0xFF);
+    dst[1] = (uint8_t)(v >> 8);
+}
+
 /** `out_buf` should be able to hold the resulting formatted message */
 size_t format_text_response(uint8_t *out_buf, const char *msg, size_t len) {
     acp_response_t resp;
-    acp_build_response(&resp, ACP_RESP_TEXT, len, (uint8_t *)msg);
+    if (!acp_build_response(&resp, ACP_RESP_TEXT, (uint8_t *)msg, len)) {
+        return 0;
+    }
+
+    return acp_format_response(out_buf, &resp);
+}
+
+size_t format_u16_data_response(uint8_t *out_buf, const uint16_t *data,
+                                size_t len) {
+    size_t len_bytes = len * 2;
+    // ensure data fits in buffer
+    if (len_bytes > ACP_RESP_PAYLOAD_SIZE) {
+        return 0;
+    }
+
+    acp_response_t resp = {.type = ACP_RESP_DATA,
+                           .payload_len_bytes = (uint8_t)len_bytes};
+
+    for (size_t i = 0; i < len; i++) {
+        format_u16_le(&resp.payload[i * 2], data[i]);
+    }
 
     return acp_format_response(out_buf, &resp);
 }
@@ -102,14 +143,18 @@ void usb_task(void *arg) {
 }
 
 void worker_task(void *arg) {
+    // assume each response is sent synchronously, so the buffer has at most 1
+    // user at a time
+    static uint8_t out_buf[ACP_RESP_MAX_SIZE];
+    size_t n = 0;
 
+    acp_command_t cmd;
     while (1) {
-        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+        xQueueReceive(cmd_queue, &cmd, portMAX_DELAY);
 
-        switch (current_cmd.type) {
+        switch (cmd.type) {
         case ACP_CMD_PING: {
-            uint8_t out_buf[16];
-            size_t n = format_text_response(out_buf, "PONG", 4);
+            n = format_text_response(out_buf, "PONG", 4);
             xMessageBufferSend(tx_msg_buffer, out_buf, n, portMAX_DELAY);
             break;
         }
@@ -124,19 +169,20 @@ void worker_task(void *arg) {
             //          receiver_stack_free_words, sender_stack_free_words);
             // cs_build_text_response(&resp, buf);
             // break;
+            n = format_u16_data_response(out_buf, TEST_DATA,
+                                         sizeof(TEST_DATA) / 2);
+            xMessageBufferSend(tx_msg_buffer, out_buf, n, portMAX_DELAY);
+            break;
         }
-        case ACP_CMD_ADC: {
-            // uint16_t buf[16];
-            // // start ADC+DMA
-            // HAL_ADC_Start_DMA(&hadc1, (uint32_t *)buf, 16);
-            // // block until it finishes
-            // ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-            // // stop ADC
-            // HAL_ADC_Stop_DMA(&hadc1);
-            // // TODO! Error checking with HAL_ADC_GetState?
-            // cs_build_data_response(&resp, buf, 16);
-            // break;
-        }
+        case ACP_CMD_ADC:
+            // start ADC+DMA
+            start_adc_dma();
+            // block until it finishes
+            ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+
+            n = format_u16_data_response(out_buf, adc_buffer, ADC_NUM_SAMPLES);
+            xMessageBufferSend(tx_msg_buffer, out_buf, n, portMAX_DELAY);
+            break;
         case ACP_CMD_SET_LED: {
             // // arg0: led index
             // uint32_t index = cs_get_arg(0);
@@ -146,7 +192,7 @@ void worker_task(void *arg) {
             // if (led_ctrl_set_buffer2(index, rgb) == 0) {
             //     HAL_TIM_PWM_Start_DMA(&htim3, TIM_CHANNEL_1,
             //                           (uint32_t *)led_ctrl_get_buffer(),
-            //                           led_ctrl_get_buffer_len());
+            //                           led_ct`rl_get_buffer_len());
             //     // block until it finishes
             //     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
             //     cs_build_text_response(&resp, "OK\n");
@@ -158,20 +204,31 @@ void worker_task(void *arg) {
         }
         case ACP_CMD_INVALID:
         default:
-            uint8_t out_buf[24];
-            size_t n = format_text_response(out_buf, "unknown cmd", 11);
+            n = format_text_response(out_buf, "unknown cmd", 11);
             xMessageBufferSend(tx_msg_buffer, out_buf, n, portMAX_DELAY);
             break;
         }
     }
 }
 
+void adc_finished_cb() {
+    // runs in IRQ context
+    stop_adc(true);
+
+    BaseType_t xHigherPrioTaskWoken = pdFALSE;
+    vTaskNotifyGiveFromISR(worker_task_handle, &xHigherPrioTaskWoken);
+
+    portYIELD_FROM_ISR(xHigherPrioTaskWoken);
+}
+
 int main() {
     /** Peripheral init */
     status_led_init();
+    init_adc(BOARD_ADC_CHAN, adc_buffer, ADC_NUM_SAMPLES, adc_finished_cb);
 
     /** Sync primitives init */
     tx_msg_buffer = xMessageBufferCreate(ACP_RESP_MAX_SIZE + sizeof(size_t));
+    cmd_queue = xQueueCreate(2, sizeof(acp_command_t));
 
     // tusb_rhport_init_t dev_init = {
     //     .role = TUSB_ROLE_DEVICE,
@@ -190,11 +247,8 @@ int main() {
     assert(created == pdPASS);
 
     created = xTaskCreate(usb_task, "usb_task", configMINIMAL_STACK_SIZE, NULL,
-                          TASK_DEFAULT_PRIORITY + 1, &usb_task_handle);
+                          TASK_DEFAULT_PRIORITY, &usb_task_handle);
     assert(created == pdPASS);
-
-    // BaseType_t created_worker = xTaskCreate(
-    // worker_task, "worker", configMINIMAL_STACK_SIZE, NULL, 10, NULL);
 
     blink_enable = true;
 
@@ -246,11 +300,12 @@ void tud_cdc_rx_cb(uint8_t itf) {
     if (n == 0)
         return;
 
-    bool result = acp_parse_command(&current_cmd, rx_buf, n);
+    acp_command_t cmd;
+    bool result = acp_parse_command(&cmd, rx_buf, n);
 
     if (result) {
         // notify worker
-        xTaskNotifyGive(worker_task_handle);
+        xQueueSend(cmd_queue, &cmd, 0);
     } else {
         const char error_msg[] = "comando invalido";
         uint8_t out_buf[12 + sizeof(error_msg)];

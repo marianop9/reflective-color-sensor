@@ -12,7 +12,7 @@
  * @brief List of available commands as strings.
  */
 const char *ACP_COMMAND_LIST[] = {
-    "PING", "MEM", "TOGGLE_LED", "ADC", "SET_LED",
+    "PING", "MEM", "ADC", "SET_LED",
 };
 
 const char *ACP_RESPONSE_LIST[] = {
@@ -202,7 +202,7 @@ bool acp_is_valid_command(const acp_command_t *cmd) {
 }
 
 bool acp_build_response(acp_response_t *resp, acp_response_type_t type,
-                        uint8_t payload_len_bytes, const uint8_t *payload) {
+                        const uint8_t *payload, uint8_t payload_len_bytes) {
 
     if (payload_len_bytes > ACP_RESP_PAYLOAD_SIZE) {
         return false;
@@ -219,7 +219,7 @@ size_t acp_format_response(uint8_t *buffer, acp_response_t *resp) {
     // could add checks to ensure buffer is big enough
     const char *resp_str = response_to_string(resp->type);
     if (resp_str == NULL) {
-        return false;
+        return 0;
     }
 
     size_t n = 0;

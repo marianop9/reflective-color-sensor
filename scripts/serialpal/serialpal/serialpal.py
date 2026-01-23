@@ -82,21 +82,21 @@ class SerialPal():
         header = recv.decode("ascii")
 
         if not header.startswith("&"):
-            return "unknwon resp: {}".format(header)
+            return f"unknwon resp (no startchar): {header}"
 
         parts = header[1:-1].split(",")
         if len(parts) != 2:
-            return "unknwon resp: {}".format(header)
+            return f"unknwon resp (invalid header): {header}"
 
         resp_type = parts[0]
         payload_len_bytes = int(parts[1])
 
         if resp_type != "TEXT" and resp_type != "DATA":
-            return "unknown resp type: \"{}\"".format(header)
+            return f"unknown resp type: {header}"
 
         raw_payload = self.serial_port.read(payload_len_bytes)
         if len(raw_payload) == 0:
-            return "received no payload for \"{}\"".format(header)
+            return f"received no payload for: {header}"
 
         payload: str | tuple[int]
         if resp_type == "TEXT":

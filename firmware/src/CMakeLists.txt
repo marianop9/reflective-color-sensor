@@ -17,7 +17,8 @@ if (CMAKE_CROSSCOMPILING)
         FreeRTOS-Kernel
     )
 
-    # add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/lib/usbproto)
+    add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/bsp)
+    add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/drivers)
 
     # main executable
     add_executable(firmware
@@ -35,6 +36,8 @@ if (CMAKE_CROSSCOMPILING)
         FreeRTOS-Kernel 
         FreeRTOS-Kernel-Heap4
         ascii-comm-proto
+        driver_adc
+        bsp
     )
     
     pico_enable_stdio_usb(firmware 0)

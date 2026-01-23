@@ -54,12 +54,12 @@
 /** Maximum size for the second payload. */
 #define ACP_PAYLOAD2_SIZE 10
 /** Command buffer size. (A command has 4 control characters) */
-#define ACP_CMD_MAX_SIZE                                                   \
+#define ACP_CMD_MAX_SIZE                                                       \
     (ACP_COMMAND_STR_SIZE + ACP_PAYLOAD1_SIZE + ACP_PAYLOAD2_SIZE + 4)
 /** Maximum size for the checksum string. */
 // #define ACP_CHECKSUM_STR_SIZE 2
 /** Maximum size for response payload (in bytes) */
-#define ACP_RESP_PAYLOAD_SIZE 256
+#define ACP_RESP_PAYLOAD_SIZE 255
 /** Maximum size for response message (in bytes) */
 #define ACP_RESP_MAX_SIZE (12 + ACP_RESP_PAYLOAD_SIZE)
 
@@ -76,7 +76,6 @@ typedef enum {
     ACP_CMD_COUNT,  /**< Total number of commands. */
     ACP_CMD_INVALID /**< Invalid command. */
 } acp_command_type_t;
-
 
 /**
  * @brief Structure representing a serial communication command.
@@ -146,7 +145,7 @@ bool acp_parse_command(acp_command_t *cmd, const char *buffer, int length);
 bool acp_is_valid_command(const acp_command_t *cmd);
 
 bool acp_build_response(acp_response_t *resp, acp_response_type_t type,
-                        uint8_t payload_len_bytes, const uint8_t *payload);
+                        const uint8_t *payload, uint8_t payload_len_bytes);
 
 /**
  * @brief Creates a response string for serial communication from a
