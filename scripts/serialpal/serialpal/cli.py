@@ -67,12 +67,8 @@ class Cli(cmd.Cmd):
 
     def do_adc(self, _):
         self.serial.send("ADC")
-        time.sleep(0.5)
-        # ADC response won't be sent until a second command is sent
-        # send ping and ignore response :((((
-        self.serial.send("PING")
+        
         self.receive(True)
-        self.receive(False)
 
     def do_mem(self, _):
         "Get memory stats"

@@ -29,14 +29,15 @@ if (CMAKE_CROSSCOMPILING)
     
     target_link_libraries(firmware
         pico_stdlib
-        # hardware_adc
-        # hardware_dma
+        hardware_adc
+        hardware_dma
         tinyusb_device
         tinyusb_board
         FreeRTOS-Kernel 
         FreeRTOS-Kernel-Heap4
         ascii-comm-proto
         driver_adc
+        # driver_ws2812
         bsp
     )
     

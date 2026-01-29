@@ -98,6 +98,9 @@ class SerialPal():
         if len(raw_payload) == 0:
             return f"received no payload for: {header}"
 
+        if len(raw_payload) != payload_len_bytes:
+            return f"incomplete payload ({len(raw_payload)}/{payload_len_bytes})"
+
         payload: str | tuple[int]
         if resp_type == "TEXT":
             payload = raw_payload.decode("ascii")

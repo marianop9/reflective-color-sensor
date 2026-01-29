@@ -23,7 +23,6 @@
  * (4) PAYLOAD_LENGTH_BYTES     req. ASCII nums (length specified in BYTES)
  * (5) ACP_PAYLOAD_START_CHAR   (;)
  * (6) PAYLOAD                  req. raw data. length is PAYLOAD_LENGTH bytes.
- * (7) ACP_END_CHAR             (*)
  */
 
 #ifndef ACP_SERIAL_COM_H

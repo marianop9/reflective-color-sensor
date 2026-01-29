@@ -109,12 +109,13 @@ void usb_task(void *arg) {
     size_t tx_buf_idx = 0;
 
     while (1) {
-        tud_task();
+        // tud_task();
+        tud_task_ext(1000, false);
 
         if (tx_buf_len == 0) {
             // if no message is currently in buffer, attempt to get a new one
             size_t n = xMessageBufferReceive(tx_msg_buffer, tx_buf,
-                                             sizeof(tx_buf), pdMS_TO_TICKS(3));
+                                             sizeof(tx_buf), pdMS_TO_TICKS(5));
 
             if (n > 0) {
                 tx_buf_len = n;
