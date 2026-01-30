@@ -51,3 +51,15 @@ target_include_directories(driver_adc
 
 target_link_libraries(driver_adc hardware_adc hardware_dma)
 
+# cd4066 driver -------------------------------------------------------------------
+add_library(driver_cd4066_resistor_picker
+    STATIC 
+    ${CMAKE_CURRENT_LIST_DIR}/cd4066_resistor_picker.c
+)
+
+target_include_directories(driver_cd4066_resistor_picker 
+    PUBLIC
+    ${CMAKE_CURRENT_LIST_DIR}/include
+)
+
+target_link_libraries(driver_cd4066_resistor_picker hardware_gpio)

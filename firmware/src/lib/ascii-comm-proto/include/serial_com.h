@@ -70,6 +70,7 @@
 typedef enum {
     ACP_CMD_PING = 0,
     ACP_CMD_MEM,
+    ACP_CMD_SET_RES,
     ACP_CMD_ADC,
     ACP_CMD_SET_LED,
     ACP_CMD_COUNT,  /**< Total number of commands. */

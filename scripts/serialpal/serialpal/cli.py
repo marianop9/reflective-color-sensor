@@ -57,8 +57,9 @@ class Cli(cmd.Cmd):
     def do_recv(self, _):
         self.receive(True)
 
-    def do_send(self, arg):
-        self.serial.send(arg)
+    def do_send(self, arg: str):
+        cmd_and_args = arg.split(" ")
+        self.serial.send(*cmd_and_args)
         self.receive(True)
 
     def do_ping(self, _):
@@ -67,7 +68,6 @@ class Cli(cmd.Cmd):
 
     def do_adc(self, _):
         self.serial.send("ADC")
-        
         self.receive(True)
 
     def do_mem(self, _):

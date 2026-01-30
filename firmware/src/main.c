@@ -10,6 +10,7 @@
 
 #include "board.h"
 #include "drivers/adc.h"
+#include "drivers/cd4066_resistor_picker.h"
 #include "serial_com.h"
 
 #define TASK_DEFAULT_PRIORITY 10
@@ -175,6 +176,23 @@ void worker_task(void *arg) {
             xMessageBufferSend(tx_msg_buffer, out_buf, n, portMAX_DELAY);
             break;
         }
+        case ACP_CMD_SET_RES: {
+            if (cmd.payload1[0] == '+') {
+                if (!cd4066_next()) {
+                    cd4066_reset();
+                }
+            } else if (cmd.payload1[0] == '-') {
+                cd4066_prev();
+            }
+
+            uint32_t current_value = cd4066_get_current_resistor_ohms();
+
+            // return value in kohms
+            n = format_u16_data_response(out_buf,
+                                         (uint16_t[]){current_value / 1000}, 1);
+            xMessageBufferSend(tx_msg_buffer, out_buf, n, portMAX_DELAY);
+            break;
+        }
         case ACP_CMD_ADC:
             // start ADC+DMA
             start_adc_dma();
@@ -226,6 +244,10 @@ int main() {
     /** Peripheral init */
     status_led_init();
     init_adc(BOARD_ADC_CHAN, adc_buffer, ADC_NUM_SAMPLES, adc_finished_cb);
+    cd4066_init((uint32_t[]){1000, 10000, 100000},
+                (uint32_t[]){BOARD_R1_ENABLE_PIN, BOARD_R10_ENABLE_PIN,
+                             BOARD_R100_ENABLE_PIN},
+                3);
 
     /** Sync primitives init */
     tx_msg_buffer = xMessageBufferCreate(ACP_RESP_MAX_SIZE + sizeof(size_t));

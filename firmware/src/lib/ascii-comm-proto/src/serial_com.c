@@ -12,7 +12,7 @@
  * @brief List of available commands as strings.
  */
 const char *ACP_COMMAND_LIST[] = {
-    "PING", "MEM", "ADC", "SET_LED",
+    "PING", "MEM", "SET_RES", "ADC", "SET_LED",
 };
 
 const char *ACP_RESPONSE_LIST[] = {

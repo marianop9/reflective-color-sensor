@@ -110,7 +110,7 @@ class SerialPal():
 
         return "{} ({}): {}".format(resp_type, payload_len_bytes, payload)
 
-    def send(self, cmd: str, *, arg1="", arg2=""):
+    def send(self, cmd: str, arg1="", arg2=""):
         if not self.serial_port.is_open:
             print("no open ports")
             return
@@ -119,6 +119,7 @@ class SerialPal():
         out: bytes
         try:
             out = cmd_fmt.format(cmd, arg1, arg2).encode("ascii")
+            # print(out)
         except UnicodeEncodeError:
             print("command can't be ASCII-encoded")
             return
