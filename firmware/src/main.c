@@ -240,6 +240,8 @@ void adc_finished_cb() {
     portYIELD_FROM_ISR(xHigherPrioTaskWoken);
 }
 
+void cd4066_make_before_break_delay() { vTaskDelay(pdMS_TO_TICKS(3)); }
+
 int main() {
     /** Peripheral init */
     status_led_init();
@@ -247,7 +249,7 @@ int main() {
     cd4066_init((uint32_t[]){1000, 10000, 100000},
                 (uint32_t[]){BOARD_R1_ENABLE_PIN, BOARD_R10_ENABLE_PIN,
                              BOARD_R100_ENABLE_PIN},
-                3);
+                3, cd4066_make_before_break_delay);
 
     /** Sync primitives init */
     tx_msg_buffer = xMessageBufferCreate(ACP_RESP_MAX_SIZE + sizeof(size_t));

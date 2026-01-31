@@ -1,7 +1,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-bool cd4066_init(uint32_t *values, uint32_t *pins, uint32_t pin_count);
+bool cd4066_init(uint32_t *values, uint32_t *pins, uint32_t pin_count,
+                 void (*make_before_break_delay_fn)(void));
 void cd4066_reset();
 bool cd4066_next();
 bool cd4066_prev();
