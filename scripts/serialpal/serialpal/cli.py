@@ -1,8 +1,9 @@
 import sys
-import time
 import cmd
+import numpy as np
 
-from .serialpal import SerialPal, Response
+from .serialpal import SerialPal
+from .plotter import Plotter
 
 
 class Cli(cmd.Cmd):
@@ -12,6 +13,8 @@ class Cli(cmd.Cmd):
     def __init__(self):
         super().__init__()
         self.serial = SerialPal()
+        self.plotter = Plotter()
+        self.last_measurements = ()
 
     def do_exit(self, _):
         self.serial.close()
@@ -46,10 +49,10 @@ class Cli(cmd.Cmd):
             self.serial.close()
             print(f"{self.serial.serial_port_name()} closed!")
 
-    def receive(self, should_print=False) -> Response:
-        result = self.serial.receive()
+    def receive(self, should_print=False, data_size=0):
+        result = self.serial.receive(data_size)
         if should_print:
-            print(f"RECV: {result}")
+            print(f"RECV: {result.format()}")
             # print(f"RECV: ({result.type}) {result.data}")
 
         return result
@@ -66,9 +69,42 @@ class Cli(cmd.Cmd):
         self.serial.send("PING")
         self.receive(True)
 
-    def do_adc(self, _):
-        self.serial.send("ADC")
+    def do_get_res(self, _):
+        self.serial.send("SET_RES")
         self.receive(True)
+
+    def do_set_res(self, arg):
+        if arg not in ["+", "-"]:
+            print("invalid arg ", arg)
+            return
+
+        self.serial.send("SET_RES", arg)
+        self.receive(True)
+
+    def do_adc(self, arg):
+        plot = arg == "plot"
+
+        self.serial.send("ADC")
+        resp = self.receive(should_print=False)
+        self.last_measurements = np.array(resp.payload)
+        if plot:
+            self.plotter.add_batch(self.last_measurements)
+        else:
+            print(f"Data: {self.last_measurements}")
+
+        mean = self.last_measurements.mean()
+        print(f"Mean: {mean}")
+        print(f"Std: {self.last_measurements.std(mean=mean)}")
+
+    def do_plot_last(self, arg):
+        # plot last measurements
+        # self.plotter.add_batch(self.last_measurements)
+        data = self.plotter.add_test_data(arg)
+        for d in data:
+            arr = np.array(d)
+            mean = arr.mean()
+            print(f"Mean: {mean}")
+            print(f"Std: {arr.std(mean=mean)}")
 
     def do_mem(self, _):
         "Get memory stats"
@@ -104,8 +140,8 @@ class Cli(cmd.Cmd):
             print("invalid rgb:", args[1:])
             return
 
-        self.serial.set_led(led, rgb)
-        self.receive(True)
+        self.serial.send("SET_LED", str(led), hex(rgb))
+        self.receive(True, data_size=8)
 
 
 def build_rgb(input: list[str]) -> int:
@@ -125,8 +161,7 @@ def build_rgb(input: list[str]) -> int:
     if len(input) == 3:
         # individual r-g-b values (in base-10)
         r, g, b = [int(x) for x in input]
-        if any([x < 0 or x >= (1 << 8)
-                for x in (r, g, b)]):
+        if any([x < 0 or x >= (1 << 8) for x in (r, g, b)]):
             raise ValueError
         rgb = r << 16 | g << 8 | b
 

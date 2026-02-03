@@ -3,7 +3,7 @@
  * https://github.com/raspberrypi/pico-examples/blob/master/pio/ws2812/ws2812.c
  */
 
-#include "ws2812.h"
+#include "drivers/ws2812.h"
 #include "hardware/clocks.h"
 #include "hardware/pio.h"
 #include "ws2812.pio.h"

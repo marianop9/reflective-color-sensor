@@ -7,12 +7,20 @@ import struct
 
 
 class Response:
-    def __init__(self, type: Literal["TEXT", "DATA"], data: str | tuple[int]):
+    def __init__(self, type: Literal["TEXT", "DATA"],
+                 data: str | tuple[int],
+                 len_bytes):
         self.type = type
         self.payload = data
+        self.payload_len_bytes = len_bytes
 
     def is_error(self):
         return self.type == "TEXT" and self.data.startswith("ERR")
+
+    def format(self):
+        return "{} ({}): {}".format(self.type,
+                                    self.payload_len_bytes,
+                                    self.payload)
 
 
 _port_settings = dict(
@@ -73,7 +81,7 @@ class SerialPal():
         print(f"{self.serial_port.port} open!")
         return True
 
-    def receive(self):
+    def receive(self, data_size=0) -> Response:
         if not self.serial_port.is_open:
             print("no open ports")
             return ""
@@ -99,16 +107,31 @@ class SerialPal():
             return f"received no payload for: {header}"
 
         if len(raw_payload) != payload_len_bytes:
-            return f"incomplete payload ({len(raw_payload)}/{payload_len_bytes})"
+            return f"incompl. payload ({len(raw_payload)}/{payload_len_bytes})"
 
         payload: str | tuple[int]
+        resp: Response
         if resp_type == "TEXT":
-            payload = raw_payload.decode("ascii")
-        elif resp_type == "DATA":
-            payload = struct.unpack("<{}H".format(
-                int(payload_len_bytes/2)), raw_payload)
+            if data_size != 0:
+                print("Warning: specified data_size, but response type is TEXT")
 
-        return "{} ({}): {}".format(resp_type, payload_len_bytes, payload)
+            payload = raw_payload.decode("ascii")
+            resp = Response(resp_type, payload, payload_len_bytes)
+        elif resp_type == "DATA":
+            # default data_size is 16
+            format_specifier = "H"
+            if data_size == 0:
+                data_size = 16
+
+            if data_size == 8:
+                format_specifier = "B"
+
+            payload = struct.unpack("<{}{}".format(int(payload_len_bytes*(8/data_size)),
+                                                   format_specifier),
+                                    raw_payload)
+            resp = Response(resp_type, payload, payload_len_bytes)
+
+        return resp
 
     def send(self, cmd: str, arg1="", arg2=""):
         if not self.serial_port.is_open:
@@ -119,7 +142,7 @@ class SerialPal():
         out: bytes
         try:
             out = cmd_fmt.format(cmd, arg1, arg2).encode("ascii")
-            # print(out)
+            print(out)
         except UnicodeEncodeError:
             print("command can't be ASCII-encoded")
             return
@@ -127,10 +150,6 @@ class SerialPal():
         n = self.serial_port.write(out)
         status = "OK" if n == len(out) else "ERR"
         print(f"{status} ({n})")
-
-    def set_led(self, idx: int, rgb: int):
-        cmd = "SET_LED {} {}".format(idx, rgb)
-        self.send(cmd)
 
 
 # def build_response(msg: bytes, should_print=False) -> Response:

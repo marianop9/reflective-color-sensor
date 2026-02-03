@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 #include "FreeRTOS.h"
 #include "message_buffer.h"
 #include "queue.h"
@@ -11,6 +13,7 @@
 #include "board.h"
 #include "drivers/adc.h"
 #include "drivers/cd4066_resistor_picker.h"
+#include "drivers/ws2812.h"
 #include "serial_com.h"
 
 #define TASK_DEFAULT_PRIORITY 10
@@ -100,6 +103,15 @@ size_t format_u16_data_response(uint8_t *out_buf, const uint16_t *data,
         format_u16_le(&resp.payload[i * 2], data[i]);
     }
 
+    return acp_format_response(out_buf, &resp);
+}
+
+size_t format_u8_data_response(uint8_t *out_buf, const uint8_t *data,
+                               size_t len) {
+    acp_response_t resp;
+    if (!acp_build_response(&resp, ACP_RESP_DATA, (uint8_t *)data, len)) {
+        return 0;
+    }
     return acp_format_response(out_buf, &resp);
 }
 
@@ -203,10 +215,11 @@ void worker_task(void *arg) {
             xMessageBufferSend(tx_msg_buffer, out_buf, n, portMAX_DELAY);
             break;
         case ACP_CMD_SET_LED: {
-            // // arg0: led index
-            // uint32_t index = cs_get_arg(0);
-            // // arg1: 24-bit RGB code
-            // uint32_t rgb = cs_get_arg(1);
+            char *end = NULL;
+            // // arg1: led index
+            uint32_t index = strtoul(cmd.payload1, &end, 10);
+            // // arg2: 24-bit RGB code
+            uint32_t rgb = strtoul(cmd.payload2, &end, 16);
 
             // if (led_ctrl_set_buffer2(index, rgb) == 0) {
             //     HAL_TIM_PWM_Start_DMA(&htim3, TIM_CHANNEL_1,
@@ -219,7 +232,18 @@ void worker_task(void *arg) {
             //     cs_build_text_response(&resp, "failed to set LEDs\n");
             // }
 
-            // break;
+            bool ok = ws2812_set_pixel(index, rgb);
+            if (ok) {
+                ws2812_sync_pixels();
+            }
+
+            // devolvemos los valores tal como se interpretaron (idx, r, g, b)
+            uint8_t resp[4] = {(uint8_t)index, (uint8_t)(rgb >> 16),
+                               (uint8_t)(rgb >> 8), (uint8_t)rgb};
+
+            n = format_u8_data_response(out_buf, resp, 4);
+            xMessageBufferSend(tx_msg_buffer, out_buf, n, portMAX_DELAY);
+            break;
         }
         case ACP_CMD_INVALID:
         default:
@@ -250,6 +274,7 @@ int main() {
                 (uint32_t[]){BOARD_R1_ENABLE_PIN, BOARD_R10_ENABLE_PIN,
                              BOARD_R100_ENABLE_PIN},
                 3, cd4066_make_before_break_delay);
+    ws2812_init(BOARD_WS2812_PIN);
 
     /** Sync primitives init */
     tx_msg_buffer = xMessageBufferCreate(ACP_RESP_MAX_SIZE + sizeof(size_t));

@@ -36,7 +36,7 @@ if (CMAKE_CROSSCOMPILING)
         ascii-comm-proto
         driver_adc
         driver_cd4066_resistor_picker
-        # driver_ws2812
+        driver_ws2812
         bsp
     )
     
