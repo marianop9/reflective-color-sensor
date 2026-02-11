@@ -49,9 +49,12 @@ class Cli(cmd.Cmd):
             self.serial.close()
             print(f"{self.serial.serial_port_name()} closed!")
 
-    def receive(self, should_print=False, data_size=0):
-        result = self.serial.receive(data_size)
+    def receive(self, should_print=False):
+        result = self.serial.receive()
         if should_print:
+            if not result.decode():
+                print("failed to decode response")
+                return result
             print(f"RECV: {result.format()}")
             # print(f"RECV: ({result.type}) {result.data}")
 
@@ -86,6 +89,10 @@ class Cli(cmd.Cmd):
 
         self.serial.send("ADC")
         resp = self.receive(should_print=False)
+        if not resp.decode(data_size=16):
+            print("failed to decode response")
+            return
+
         self.last_measurements = np.array(resp.payload)
         if plot:
             self.plotter.add_batch(self.last_measurements)
@@ -141,7 +148,7 @@ class Cli(cmd.Cmd):
             return
 
         self.serial.send("SET_LED", str(led), hex(rgb))
-        self.receive(True, data_size=8)
+        self.receive(True)
 
 
 def build_rgb(input: list[str]) -> int:

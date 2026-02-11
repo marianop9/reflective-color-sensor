@@ -7,17 +7,58 @@ import struct
 
 
 class Response:
+    DATASIZE_BITS_8 = 8
+    DATASIZE_BITS_16 = 16
+    DATASIZE_BITS_DEFAULT = DATASIZE_BITS_8
+
     def __init__(self, type: Literal["TEXT", "DATA"],
-                 data: str | tuple[int],
+                 raw_payload: bytes,
+                 #  data: str | tuple[int],
                  len_bytes):
         self.type = type
-        self.payload = data
+        self.raw_payload = raw_payload
         self.payload_len_bytes = len_bytes
+        self.payload = None
 
     def is_error(self):
-        return self.type == "TEXT" and self.data.startswith("ERR")
+        if (self.payload is None):
+            ok = self.decode()
+            if not ok:
+                return True
+
+        return self.type == "TEXT" and self.payload.startswith("ERR")
+
+    def decode(self, *, data_size=DATASIZE_BITS_DEFAULT) -> bool:
+        if self.payload is not None:
+            return True
+
+        if self.type == "TEXT":
+            if data_size != Response.DATASIZE_BITS_DEFAULT:
+                print("Warning: specified data_size, but response type is TEXT")
+
+            self.payload = self.raw_payload.decode("ascii")
+        elif self.type == "DATA":
+            # default data_size is 16
+
+            if data_size == Response.DATASIZE_BITS_8:
+                format_specifier = "B"
+            elif data_size == Response.DATASIZE_BITS_16:
+                format_specifier = "H"
+            else:
+                print('unsupported data size: ', data_size)
+                return False
+
+            payload_len = int(self.payload_len_bytes*8/data_size)
+            self.payload = struct.unpack("<{}{}".format(payload_len,
+                                                        format_specifier),
+                                         self.raw_payload)
+
+        return True
 
     def format(self):
+        if self.payload is None:
+            return ""
+
         return "{} ({}): {}".format(self.type,
                                     self.payload_len_bytes,
                                     self.payload)
@@ -33,6 +74,7 @@ _port_settings = dict(
 
 
 class SerialPal():
+
     def __init__(self, port_settings=_port_settings):
         self.serial_port = serial.Serial(port=None, **port_settings)
         self._port_list = None
@@ -109,27 +151,7 @@ class SerialPal():
         if len(raw_payload) != payload_len_bytes:
             return f"incompl. payload ({len(raw_payload)}/{payload_len_bytes})"
 
-        payload: str | tuple[int]
-        resp: Response
-        if resp_type == "TEXT":
-            if data_size != 0:
-                print("Warning: specified data_size, but response type is TEXT")
-
-            payload = raw_payload.decode("ascii")
-            resp = Response(resp_type, payload, payload_len_bytes)
-        elif resp_type == "DATA":
-            # default data_size is 16
-            format_specifier = "H"
-            if data_size == 0:
-                data_size = 16
-
-            if data_size == 8:
-                format_specifier = "B"
-
-            payload = struct.unpack("<{}{}".format(int(payload_len_bytes*(8/data_size)),
-                                                   format_specifier),
-                                    raw_payload)
-            resp = Response(resp_type, payload, payload_len_bytes)
+        resp = Response(resp_type, raw_payload, payload_len_bytes)
 
         return resp
 
@@ -150,7 +172,6 @@ class SerialPal():
         n = self.serial_port.write(out)
         status = "OK" if n == len(out) else "ERR"
         print(f"{status} ({n})")
-
 
 # def build_response(msg: bytes, should_print=False) -> Response:
 #     """ Expected format:
