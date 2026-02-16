@@ -91,7 +91,7 @@ typedef struct {
  * @brief Enum defining response types.
  */
 typedef enum {
-    ACP_RESP_ACK = 0,
+    ACP_RESP_ERR = 0,
     ACP_RESP_TEXT,
     ACP_RESP_DATA,
     ACP_RESP_COUNT,

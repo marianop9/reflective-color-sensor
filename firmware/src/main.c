@@ -79,6 +79,16 @@ static inline void format_u16_le(uint8_t *dst, uint16_t v) {
 }
 
 /** `out_buf` should be able to hold the resulting formatted message */
+size_t format_error_response(uint8_t *out_buf, const char *msg, size_t len) {
+    acp_response_t resp;
+    if (!acp_build_response(&resp, ACP_RESP_ERR, (uint8_t *)msg, len)) {
+        return 0;
+    }
+
+    return acp_format_response(out_buf, &resp);
+}
+
+/** `out_buf` should be able to hold the resulting formatted message */
 size_t format_text_response(uint8_t *out_buf, const char *msg, size_t len) {
     acp_response_t resp;
     if (!acp_build_response(&resp, ACP_RESP_TEXT, (uint8_t *)msg, len)) {
@@ -247,7 +257,7 @@ void worker_task(void *arg) {
         }
         case ACP_CMD_INVALID:
         default:
-            n = format_text_response(out_buf, "unknown cmd", 11);
+            n = format_error_response(out_buf, "unknown cmd", 11);
             xMessageBufferSend(tx_msg_buffer, out_buf, n, portMAX_DELAY);
             break;
         }
@@ -359,7 +369,7 @@ void tud_cdc_rx_cb(uint8_t itf) {
     } else {
         const char error_msg[] = "comando invalido";
         uint8_t out_buf[12 + sizeof(error_msg)];
-        size_t n = format_text_response(out_buf, error_msg, strlen(error_msg));
+        size_t n = format_error_response(out_buf, error_msg, strlen(error_msg));
         // shouldn't be any reason for buffer to be full, so don't block
         xMessageBufferSend(tx_msg_buffer, out_buf, n, 0);
     }

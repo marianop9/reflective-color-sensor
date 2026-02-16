@@ -16,7 +16,7 @@ const char *ACP_COMMAND_LIST[] = {
 };
 
 const char *ACP_RESPONSE_LIST[] = {
-    "ACK",
+    "ERR",
     "TEXT",
     "DATA",
 };
