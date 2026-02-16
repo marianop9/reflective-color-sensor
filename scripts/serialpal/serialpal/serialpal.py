@@ -3,15 +3,12 @@ import serial.tools.list_ports
 from typing import Literal
 import struct
 
-# from . import decoders
+
+FORMAT_SPECIFIERS_BY_BITS = {8: "B", 16: "H"}
 
 
 class Response:
-    DATASIZE_BITS_8 = 8
-    DATASIZE_BITS_16 = 16
-    DATASIZE_BITS_DEFAULT = DATASIZE_BITS_8
-
-    def __init__(self, type: Literal["TEXT", "DATA"],
+    def __init__(self, type: Literal["ERR", "TEXT", "DATA"],
                  raw_payload: bytes,
                  #  data: str | tuple[int],
                  len_bytes):
@@ -21,37 +18,27 @@ class Response:
         self.payload = None
 
     def is_error(self):
-        if (self.payload is None):
-            ok = self.decode()
-            if not ok:
-                return True
+        return self.type == "ERR"
 
-        return self.type == "TEXT" and self.payload.startswith("ERR")
-
-    def decode(self, *, data_size=DATASIZE_BITS_DEFAULT) -> bool:
+    def decode(self, *, data_size=16) -> bool:
         if self.payload is not None:
             return True
 
-        if self.type == "TEXT":
-            if data_size != Response.DATASIZE_BITS_DEFAULT:
-                print("Warning: specified data_size, but response type is TEXT")
+        if self.type not in ["ERR", "TEXT", "DATA"]:
+            print("unknown response type: ", self.type)
+            return False
 
+        if self.type in ["ERR", "TEXT"]:
             self.payload = self.raw_payload.decode("ascii")
         elif self.type == "DATA":
-            # default data_size is 16
-
-            if data_size == Response.DATASIZE_BITS_8:
-                format_specifier = "B"
-            elif data_size == Response.DATASIZE_BITS_16:
-                format_specifier = "H"
-            else:
+            format_spec = FORMAT_SPECIFIERS_BY_BITS.get(data_size)
+            if format_spec is None:
                 print('unsupported data size: ', data_size)
                 return False
 
             payload_len = int(self.payload_len_bytes*8/data_size)
-            self.payload = struct.unpack("<{}{}".format(payload_len,
-                                                        format_specifier),
-                                         self.raw_payload)
+            self.payload = struct.unpack(
+                f"<{payload_len}{format_spec}", self.raw_payload)
 
         return True
 
@@ -74,7 +61,6 @@ _port_settings = dict(
 
 
 class SerialPal():
-
     def __init__(self, port_settings=_port_settings):
         self.serial_port = serial.Serial(port=None, **port_settings)
         self._port_list = None
@@ -123,33 +109,35 @@ class SerialPal():
         print(f"{self.serial_port.port} open!")
         return True
 
-    def receive(self, data_size=0) -> Response:
+    def receive(self) -> Response | None:
         if not self.serial_port.is_open:
             print("no open ports")
-            return ""
+            return None
 
         recv = self.serial_port.read_until(b";", 12)
         header = recv.decode("ascii")
 
         if not header.startswith("&"):
-            return f"unknwon resp (no startchar): {header}"
+            print(f"RECV failed: unknwon resp (no startchar): {header}")
+            return None
 
         parts = header[1:-1].split(",")
         if len(parts) != 2:
-            return f"unknwon resp (invalid header): {header}"
+            print(f"RECV failed: unknwon resp (invalid header): {header}")
+            return None
 
         resp_type = parts[0]
         payload_len_bytes = int(parts[1])
 
-        if resp_type != "TEXT" and resp_type != "DATA":
-            return f"unknown resp type: {header}"
-
         raw_payload = self.serial_port.read(payload_len_bytes)
         if len(raw_payload) == 0:
-            return f"received no payload for: {header}"
+            print(f"RECV failed: received no payload for: {header}")
+            return None
 
         if len(raw_payload) != payload_len_bytes:
-            return f"incompl. payload ({len(raw_payload)}/{payload_len_bytes})"
+            print(
+                f"RECV failed: incompl. payload ({len(raw_payload)}/{payload_len_bytes})")
+            return None
 
         resp = Response(resp_type, raw_payload, payload_len_bytes)
 
@@ -172,27 +160,3 @@ class SerialPal():
         n = self.serial_port.write(out)
         status = "OK" if n == len(out) else "ERR"
         print(f"{status} ({n})")
-
-# def build_response(msg: bytes, should_print=False) -> Response:
-#     """ Expected format:
-
-#         id/type  | payload_length  | payload            | \\n
-
-#         (uint8_t)| (uint8_t)       | (length*uint16_t)  | (char)
-#     """
-#     ID_TEXT = 0
-#     ID_U16 = 1
-
-#     if should_print:
-#         print(msg)
-
-#     if len(msg) <= 2:
-#         return ''
-
-#     id, length = decoders._decode_header(msg[:2])
-
-#     if id == ID_TEXT:
-#         return Response(type='text', data=decoders.decode_text(msg, length))
-
-#     if id == ID_U16:
-#         return Response(type='data', data=decoders.decode_data(msg, length))

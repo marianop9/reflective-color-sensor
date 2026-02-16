@@ -3,43 +3,63 @@ import matplotlib.pyplot as plt
 
 class Plotter():
     def __init__(self, title="Mediciones"):
-        # plt.ion()
-        self.create_figure()
-        self.lines = []
-        self.k = 0
-
-    def create_figure(self, title="Mediciones"):
         self.fig, self.ax = plt.subplots()
         self.ax.set_title(title)
         self.ax.set_xlabel("n")
         self.ax.set_ylabel("ADC")
-        # self.ax.set_ylim(1000, 4095)
         self.ax.grid(True)
+        self.k = 0
 
     def add_batch(self, y, label=None):
-        self.ensure_figure()
-
-        x = range(len(y))
         self.k += 1
         if label is None:
             label = f"meas {self.k}"
 
-        line, = self.ax.plot(x, y, marker=".", linestyle="-", label=label)
-        self.lines.append(line)
+        self.ax.plot(y, marker=".", linestyle="-", label=label)
 
-        self.ax.legend(loc="best")
-        self.ax.relim()
-        self.ax.autoscale_view()
+    def show(self):
+        self.ax.legend()
+        plt.show()
+    # def __init__(self, title="Mediciones"):
+    #     # plt.ion()
+    #     self.create_figure()
+    #     self.lines = []
+    #     self.k = 0
 
-        self.fig.canvas.draw()
-        self.fig.canvas.flush_events()
-        self.fig.show()
+    # def create_figure(self, title="Mediciones"):
+    #     self.fig, self.ax = plt.subplots()
+    #     self.ax.set_title(title)
+    #     self.ax.set_xlabel("n")
+    #     self.ax.set_ylabel("ADC")
+    #     # self.ax.set_ylim(1000, 4095)
+    #     self.ax.grid(True)
 
-    def ensure_figure(self):
-        if self.fig is None or not plt.fignum_exists(self.fig.number):
-            self.create_figure()
-            self.lines = []
-            self.k = 0
+    # def add_batch(self, y, label=""):
+    #     self.ensure_figure()
+
+    #     x = range(len(y))
+    #     self.k += 1
+    #     if label == "":
+    #         label = f"meas {self.k}"
+
+    #     line, = self.ax.plot(x, y, marker=".", linestyle="-", label=label)
+    #     self.lines.append(line)
+
+    # def show(self):
+    #     self.ax.legend()
+    #     self.ax.relim()
+    #     self.ax.autoscale_view()
+    #     self.ensure_figure()
+    #     self.fig.canvas.draw()
+    #     self.fig.canvas.flush_events()
+    #     self.fig.show()
+
+
+    # def ensure_figure(self):
+    #     if self.fig is None or not plt.fignum_exists(self.fig.number):
+    #         self.create_figure()
+    #         self.lines = []
+    #         self.k = 0
 
     def add_test_data(self, dataset) -> tuple[tuple[int]]:
         # test ADC data
