@@ -146,9 +146,18 @@ class Cli(cmd.Cmd):
         else:
             print("failed to decode response")
 
-    def do_sweep(self, arg: str):
+    def do_sweep(self, args: str):
+        args = args.split(" ")
+        if len(args) > 2:
+            print("bad args")
+            return
+        
+        version = 0
+        if len(args) == 2:
+            version = int(args[1])
+
         channels = ["B", "G", "R"]
-        chan = arg.upper()
+        chan = args[0].upper()
 
         if chan not in channels:
             print("must specify channel R/G/B")
@@ -163,10 +172,12 @@ class Cli(cmd.Cmd):
 
         measurements = []
         # log-spaced intensities in range [1%-100%]
-        intensities = np.concatenate(([0], np.logspace(-2, 0, 20) * 255))  
+        intensities = np.logspace(-2, 0, 40) * 255
+        # remove duplicates and add '0'
+        intensities = np.concatenate(([0], np.unique(intensities.astype(int))))
 
         for i, intensity in enumerate(intensities):
-            # cast to python int for json export:
+            # cast numpy int -> python int for json export:
             intensity = int(intensity)
             # build 24-bit RGB
             rgb = intensity << (8*chan_idx)
@@ -189,7 +200,7 @@ class Cli(cmd.Cmd):
                 mean = np.mean(adc_resp.payload)
 
                 # report results
-                intensity_str = "{:.0%}".format(intensity/255)
+                intensity_str = "{} ({:.0%})".format(intensity, intensity/255)
                 print(f"({i}) intensity: {intensity_str} - result: {mean}")
 
                 # 4) check saturation
@@ -203,7 +214,7 @@ class Cli(cmd.Cmd):
                 # 6) once done, save measurement data
                 measurements.append(Measurement.from_response(chan, i, intensity, adc_resp, mean, Rf))
 
-        export_measurements_json(measurements, chan)
+        export_measurements_json(measurements, chan, version)
         print("sweep done")
 
     def set_led(self, index: int, rgb: int) -> Response:
@@ -236,8 +247,8 @@ class Cli(cmd.Cmd):
             Devuelve el valor de Rf actualizado.
         """
         # upperlim = 3900
-        upperlim = 3700
-        lowerlim = 900
+        upperlim = 3800
+        lowerlim = 800
         minRf = 1
         maxRf = 100
 

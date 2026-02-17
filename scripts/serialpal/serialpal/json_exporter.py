@@ -34,8 +34,8 @@ def _measurement_encoder(obj):
                 "Rf": obj.Rf}
 
 
-def export_measurements_json(measurements: list[Measurement], chan: str, fname = ""):
-    fname = f"{"measurements" if fname == "" else fname}_{chan}.json"
+def export_measurements_json(measurements: list[Measurement], chan: str, version = 0):
+    fname = f"measurements_{chan}_{version if version > 0 else ""}.json"
     
     with open(fname, "w") as file:
         json.dump(measurements, file, default=_measurement_encoder)
