@@ -1,10 +1,16 @@
 import sys
 import cmd
 import time
+import json
 import numpy as np
 
 from .serialpal import SerialPal, Response
 from .json_exporter import Measurement, export_measurements_json
+
+# constants
+VREF = 3.3
+VDD = 5
+
 
 class Cli(cmd.Cmd):
     prompt = "(serialpal) "
@@ -151,7 +157,7 @@ class Cli(cmd.Cmd):
         if len(args) > 2:
             print("bad args")
             return
-        
+
         version = 0
         if len(args) == 2:
             version = int(args[1])
@@ -212,10 +218,79 @@ class Cli(cmd.Cmd):
 
             else:
                 # 6) once done, save measurement data
-                measurements.append(Measurement.from_response(chan, i, intensity, adc_resp, mean, Rf))
+                measurements.append(Measurement.from_response(
+                    chan, i, intensity, adc_resp, mean, Rf))
 
         export_measurements_json(measurements, chan, version)
         print("sweep done")
+
+    def do_measure(self, _):
+        LDR_params: dict
+        try:
+            with open("LDR_params.json") as fp:
+                LDR_params = json.load(fp)
+        except:
+            print("failed to open LDR_params.json")
+            return
+
+        # get initial Rf value
+        Rf = self.set_Rf()
+        if Rf == 0:
+            # failed to get Rf
+            return
+        
+        # set Rf to highest val
+        # Rf = 0
+        # while Rf < 100:
+        #     Rf = self.set_Rf("+")
+        #     if Rf == 0:
+        #         # failed to get Rf
+        #         return
+
+        channels = ["R", "G", "B"]
+        results = []
+
+        for i, chan in enumerate(channels):
+            # 1) get params
+            Ka = LDR_params[chan]["Ka"]
+            gamma = LDR_params[chan]["gamma"]
+
+            should_retry = True
+            while should_retry:
+                # 2) start - set LED
+                resp = self.set_led(0, 255 << (8*(2-i)))
+                if resp.is_error():
+                    print("encountered an error: ", resp.payload)
+                    return
+                # 3) wait for LDR
+                time.sleep(0.2)
+                # 4) collect samples
+                adc_resp = self.sample_adc()
+                if not adc_resp.decode(data_size=16):
+                    print("failed to decode ADC response")
+                    return
+                # 4.1) get avg
+                adc = np.mean(adc_resp.payload)
+                print(f"chan {chan}: adc={adc}")
+
+                # 5) check saturation
+                should_retry, Rf = self._check_saturation(adc, Rf)
+                # 5.1) check for errors when changing Rf
+                if Rf == 0:
+                    return
+                # 5.2) let the loop handle the retry...
+            else:
+                
+                # 7) calculate color
+                K = (VREF - adc * 3.3/4095) / ((VDD-VREF) * Rf*Ka)
+                color = int(np.exp(np.log(K)/gamma))
+                print(f"chan {chan}: color={color}")
+                color = min(255, color)
+
+                results.append(color)
+
+        self.set_led(0, 0)
+        print(results)
 
     def set_led(self, index: int, rgb: int) -> Response:
         self.serial.send("SET_LED", str(index), hex(rgb))
@@ -238,10 +313,7 @@ class Cli(cmd.Cmd):
             print("failed to decode Rf response")
             return 0
 
-    def _set_led_and_sample():
-        pass
-        
-    def _check_saturation(self, measurement: int, current_Rf:int) -> tuple[bool, int]:
+    def _check_saturation(self, measurement: int, current_Rf: int) -> tuple[bool, int]:
         """Verifica que la medicion no este saturada, y en caso de ser necesario
             (y posible) ajusta Rf.
             Devuelve el valor de Rf actualizado.
@@ -261,8 +333,6 @@ class Cli(cmd.Cmd):
         shouldRetry = current_Rf != new_Rf
 
         return shouldRetry, new_Rf
-
-
 
 
 def parse_rgb(input: list[str]) -> int:
