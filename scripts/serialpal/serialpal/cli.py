@@ -175,6 +175,14 @@ class Cli(cmd.Cmd):
         if Rf == 0:
             # failed to get Rf
             return
+        
+        # set Rf to highest val
+        while Rf < 100:
+            Rf = self.set_Rf("+")
+            if Rf == 0:
+                # failed to get Rf
+                return
+
 
         measurements = []
         # log-spaced intensities in range [1%-100%]
@@ -188,15 +196,16 @@ class Cli(cmd.Cmd):
             # build 24-bit RGB
             rgb = intensity << (8*chan_idx)
 
+            # 1) start - set LED
+            resp = self.set_led(0, rgb)
+            if resp.is_error():
+                print("encountered an error: ", resp.payload)
+                return
+
             should_retry = True
             while should_retry:
-                # 1) start - set LED
-                resp = self.set_led(0, rgb)
-                if resp.is_error():
-                    print("encountered an error: ", resp.payload)
-                    return
                 # 2) wait for LDR
-                time.sleep(0.2)
+                time.sleep(0.4)
                 # 3) collect samples
                 adc_resp = self.sample_adc()
                 if not adc_resp.decode(data_size=16):
@@ -239,14 +248,6 @@ class Cli(cmd.Cmd):
             # failed to get Rf
             return
         
-        # set Rf to highest val
-        # Rf = 0
-        # while Rf < 100:
-        #     Rf = self.set_Rf("+")
-        #     if Rf == 0:
-        #         # failed to get Rf
-        #         return
-
         channels = ["R", "G", "B"]
         results = []
 
@@ -255,15 +256,23 @@ class Cli(cmd.Cmd):
             Ka = LDR_params[chan]["Ka"]
             gamma = LDR_params[chan]["gamma"]
 
+            # 2) start - set LED
+            resp = self.set_led(0, 255 << (8*(2-i)))
+            if resp.is_error():
+                print("encountered an error: ", resp.payload)
+                return
+
+            # set Rf to highest val
+            while Rf < 100:
+                Rf = self.set_Rf("+")
+                if Rf == 0:
+                    # failed to get Rf
+                    return
+
             should_retry = True
             while should_retry:
-                # 2) start - set LED
-                resp = self.set_led(0, 255 << (8*(2-i)))
-                if resp.is_error():
-                    print("encountered an error: ", resp.payload)
-                    return
                 # 3) wait for LDR
-                time.sleep(0.2)
+                time.sleep(0.5)
                 # 4) collect samples
                 adc_resp = self.sample_adc()
                 if not adc_resp.decode(data_size=16):
@@ -290,7 +299,8 @@ class Cli(cmd.Cmd):
                 results.append(color)
 
         self.set_led(0, 0)
-        print(results)
+        print(f"rgb({results[0]}, {results[1]}, {results[2]})")
+        print_square(*results)
 
     def set_led(self, index: int, rgb: int) -> Response:
         self.serial.send("SET_LED", str(index), hex(rgb))
@@ -318,9 +328,8 @@ class Cli(cmd.Cmd):
             (y posible) ajusta Rf.
             Devuelve el valor de Rf actualizado.
         """
-        # upperlim = 3900
         upperlim = 3800
-        lowerlim = 800
+        lowerlim = 850
         minRf = 1
         maxRf = 100
 
@@ -358,6 +367,18 @@ def parse_rgb(input: list[str]) -> int:
 
     return rgb
 
+
+def print_square(r, g, b):
+    def bg(r, g, b, text=" "):
+        return f"\033[48;2;{r};{g};{b}m{text}\033[0m"
+        
+    white = bg(255, 255, 255, " ")
+    color = bg(r, g, b, " "*3)
+
+    print(white*11)
+    for _ in range (3):
+        print(white + color*3+white)
+    print(white*11+"\n")
 
 def main():
     try:

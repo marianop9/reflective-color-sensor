@@ -12,7 +12,7 @@ channels = ["R", "G", "B"]
 results = {}
 
 for chan in channels:
-    df = pd.read_json(f"measurements_{chan}.json").set_index("index")
+    df = pd.read_json(f"measurements_{chan}_2.json").set_index("index")
     df = df.drop("data", axis="columns")
     df = df.rename(columns={"mean": "adc"})
 
