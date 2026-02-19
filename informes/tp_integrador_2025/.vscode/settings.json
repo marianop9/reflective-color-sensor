@@ -1,0 +1,5 @@
+{
+    "cSpell.language": "es-ES",
+    "cSpell.enabled": true,
+    "latex-workshop.latex.outDir": "%DIR%/out"
+}
