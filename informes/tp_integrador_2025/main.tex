@@ -1,24 +1,23 @@
-
-
 \documentclass[12pt,a4paper,twoside,fleqn,draft]{article}
-\usepackage{graphicx} % Required for inserting images
+\usepackage{graphicx}
 	\graphicspath{{./img}}
-\usepackage{fancyhdr} % Requeried for header and footer
-\usepackage{makecell} % Requeried for header image
+\usepackage{fancyhdr}
+\usepackage{makecell}
 \usepackage{indentfirst}
 \usepackage[spanish]{babel} % Paquete de idioma
+\usepackage{csquotes}
 \usepackage[font=footnotesize]{caption}
 \usepackage{subcaption}
 \usepackage{biblatex}
 \addbibresource{Bibliography.bib}
-	
-\usepackage{hyperref} % Genera vínculos en referencias y citas 
+
 \usepackage{amsmath}
 \usepackage{siunitx}
 	\sisetup{
 		group-digits=false,
 		output-complex-root=j
 	}
+\usepackage{hyperref} % Genera vínculos en referencias y citas 
 
 \begin{document}
 \renewcommand\refname {}
@@ -60,50 +59,130 @@ Departamento de Ingeniería Electrónica,\\ Facultad Regional San Francisco, Có
 \section{Introducción}
 El color es una percepción visual que surge debido a la detección de diferentes longitudes de onda que no son absorbidas por un objeto o superficie. El conjunto de señales de distintas frecuencias compone el color de dicho objeto. Éstas, dentro del espectro visible de la luz, abarcan una gama de colores que va desde el rojo, con frecuencias más bajas y longitudes de onda más largas, hasta el violeta, con frecuencias más altas y longitudes de onda más cortas.
 
-Durante el desarrollo de este trabajo, se diseñara e implementará un dispositivo que permita determinar el color de una superficie mediante la reflexión de luz.
+Durante el desarrollo de este trabajo, se diseñó e implementó un dispositivo que permite obtener un estimado del color de una superficie mediante la reflexión de luz. Este utiliza una resistencia dependiente de la luz (LDR) para la detección de la luz reflejada desde la superficie objetivo.
 
-El circuito utiliza LEDs RGB WS2812 como emisores, ya que cuentan con un factor de forma compacto, intensidad regulable, y un protocolo de comunicación sencillo. Además, se utilizan resistencias dependientes de la luz (LDR) con sus correspondientes circuito de adaptación de señal como receptores.
+El principio de funcionamiento es sencillo: el dispositivo se coloca sobre la superficie cuyo color se desea medir, y los iluminantes del sensor iluminan la superficie utilizando luz roja, verde, y azul por separado. Una vez iluminada la superficie, se mide la resistencia del LDR, y se estima la intensidad de la luz reflejada. El proceso se repite para cada color, y al final se obtiene una estimación del color de la superficie mediante un código RGB de 24 bits, el cual es un formato común y ampliamente utilizado para representar color, en especial de forma digital.
 
-Debido a la baja trazabilidad de los LDR en general, y su amplio rango de respuesta (que va desde unos cuantos kilo-ohmios hasta el orden de los mega-ohmios), se implementará un procedimiento de calibración, que permitirá al dispositivo tener referencia de los valores medidos para superficies blancas y negras, con el objetivo de mejorar las mediciones obtenidas. Por esta misma razón, se utilizarán fuentes de corriente regulables que permitan mantener a las mediciones dentro del rango de tensiones aceptables para su lectura con el ADC del microcontrolador, que en el caso de la RP Pico es de \qtyrange{0}{3.3}{\V}.
+Debido a la baja trazabilidad de los LDR en general y su amplio rango de respuesta (generalmente desde unos cuantos kilo-ohmios hasta el orden de los mega-ohmios), que además varía según la longitud de onda de la luz incidente, se implementó un procedimiento para caracterizar la respuesta del LDR. El objetivo es determinar la respuesta del LDR a las distintas longitudes de onda para mejorar las mediciones obtenidas.
 
-El sensor consta de dos etapas, la primera esta compuesta por el conjunto emisor-detector y su circuito de acondicionamiento. El emisor es un LED RGB capaz de emitir luz roja, verde y azul por separado, la cual será reflejada sobre el objeto a medir e incidirá sobre el detector. El detector utilizado es una resistencia dependiente de la luz, la cual varía su resistencia dependiendo de la luz que incide sobre la misma. La variación de resistencia se debe convertir en una variación de tensión para que pueda ser procesada, para ello se utiliza una fuente de corriente constante.
+Para tomar las mediciones se desarrolló un circuito de acondicionamiento para el LDR y un microcontrolador Raspberry Pi Pico. El microcontrolador a su vez implementa un protocolo de comunicación simple mediante USB (puerto serie virtual), que le permite funcionar como dispositivo USB e intercambiar mensajes con una PC u otro host USB. 
 
-La segunda etapa abarca el muestro y procesamiento de datos. Mediante el conversor analógico-digital (ADC) se muestrea la salida del circuito acondicionador luego de que la superficie a medir se ilumina. Las muestras son posteriormente filtradas de manera digital. Finalmente, los valores de tensión muestreados y filtrados se convierten en un valor entero de 8 bits, que representará la intensidad de luz reflejada. El proceso se repita para los tres colores RGB de forma secuencial.
-
-Las mediciones se deben realizar aisladas de la luz ambiente, por lo que se utilizará una carcasa impresa en 3D para evitar que la luz ambiente interfiera en las mediciones y cause irregularidades.
-
-La disposición de emisor y receptor se hará utilizando una configuración a \qty{45}{\degree}, tal como se muestra en la Fig. \ref{fig:montaje}. De esta manera se evita que la reflexión especular incida sobre el receptor, ya que esta no aporta información útil para las mediciones \cite{avago_rgb_color_sensing}, como si lo hace la reflexión difusa.
-
-\begin{figure}
-    \centering
-    \includegraphics[width=0.5\linewidth]{img/montaje.png}
-    \caption{Montaje de emisor y receptor.}
-    \label{fig:montaje}
-\end{figure}
-
-Se eligió el microcontrolador Raspberry PI Pico W para su uso como controlador central. El mismo será el encargado de servir el panel de control que permitirá solicitar una medición y visualizar los resultados de las últimas mediciones en una pantalla.
-
-En el circuito de la Fig. \ref{fig:diagrama} se muestra el diagrama de bloques del dispositivo, donde se pueden apreciar las principales partes que lo componen.
-
-\begin{figure}
-    \centering
-    \includegraphics[width=0.9\linewidth]{img/diagrama_inicial.png}
-    \caption{Diagrama de bloques preliminar del dispositivo.}
-    \label{fig:diagrama}
-\end{figure}
+Por último, se desarrolló una aplicación CLI (interfaz de línea de comandos), que permite la comunicación con el dispositivo a través de USB. La principal motivación fue para facilitar el análisis de datos y la caracterización del LDR utilizando lenguajes de programación de alto nivel, tales como Python.
 
 \subsection{Antecedentes}
-Las opciones comerciales de este tipo de dispositivos suelen medir color al incidir sobre la superficie objetivo, rayos provenientes de una fuente de luz blanca. El color se determina mediante un arreglo de foto-detectores, que generalmente consisten de foto-diodos con filtros RGB; cada foto-diodo detecta la intensidad de luz reflejada para una longitud de onda especifica, y se determina el color de la superficie en base a las intensidades relativas de luz captadas por cada uno.
+Las opciones comerciales de este tipo de dispositivos suelen medir color al incidir sobre la superficie objetivo, rayos provenientes de una fuente de luz blanca. El color se determina mediante un arreglo de foto-detectores, que generalmente consisten de foto-diodos con filtros RGB; cada foto-diodo detecta la intensidad de luz reflejada para una longitud de onda especifica, y se determina el color de la superficie en base a las intensidades relativas de luz captadas por cada uno. Este trabajo busca explorar la posibilidad de cumplir la misma función utilizando componentes más fácilmente accesibles y económicos.
 
 \subsection{Objetivos}
-El objetivo de este trabajo consiste en desarrollar un dispositivo de bajo costo que permita determinar el color de un objeto con un grado de precisión aceptable mediante la reflexión de luz sobre su superficie. El mismo contará con un panel de control que permita visualizar los resultados obtenidos.
+El objetivo de este trabajo consiste en desarrollar un dispositivo de bajo costo que permita determinar el color de un objeto con un grado de precisión aceptable mediante la reflexión de luz sobre su superficie. A su vez, se implementará un procedimiento de calibración para conocer la respuesta del LDR utilizado en el dispositivo. Para facilitar la operación y el procesamiento de las mediciones, se desarrollará además una aplicación de escritorio que permita interactuar con el dispositivo y visualizar los resultados obtenidos.
 
-
+% TODO! Revisar y ver si sacar:
 \subsection{Funcionamiento}
-Como se observa en la Fig. \ref{fig:diagrama}, el sistema propuesto se basa en la implementación de una Raspberry Pi Pico W, encargada del procesamiento central. El proceso inicia con todos los LED apagados; transcurrido un tiempo determinado, se activa el LED rojo, que ilumina la superficie objetivo. Mediante un LDR se detecta la reflexión difusa de dicha superficie, y una fuente de corriente ajustable convierte la resistencia del sensor LDR en una señal de tensión. Esta señal analógica se pasa por un filtro pasa-bajos, con el fin de atenuar el ruido de alta frecuencia. Una vez filtrada, la señal es muestreada por el ADC de la Pico W, haciendo uso del DMA y se realiza un filtrado digital adicional para optimizar la adquisición de datos.
+Como se observa en la Fig. \ref{fig:diagrama_inicial.png}, el sistema propuesto se basa en la implementación de una Raspberry Pi Pico W, encargada del procesamiento central. El proceso inicia con todos los LED apagados; transcurrido un tiempo determinado, se activa el LED rojo, que ilumina la superficie objetivo. Mediante un LDR se detecta la reflexión difusa de dicha superficie, y una fuente de corriente ajustable convierte la resistencia del sensor LDR en una señal de tensión. Esta señal analógica se pasa por un filtro pasa-bajos, con el fin de atenuar el ruido de alta frecuencia. Una vez filtrada, la señal es muestreada por el ADC de la Pico W, haciendo uso del DMA y se realiza un filtrado digital adicional para optimizar la adquisición de datos.
 
 El procedimiento se repite de manera secuencial para los tres componentes de color (rojo, verde y azul), permitiendo obtener un conjunto de mediciones que representan la respuesta espectral de la superficie. Con estos valores, el sistema realiza el procesamiento y determinación del color resultante, el cual se visualiza a través de una página web. Dicha página también permite al usuario ejecutar mediciones de forma remota, calibrar el dispositivo y visualizar los resultados de mediciones previas. Todo esto se logra a través de un servidor web embebido dentro del microcontrolador.
 
+\section{Desarrollo}
+A continuación se describen en detalle los distintos aspectos del dispositivo, incluyendo el hardware utilizado y el circuito de acondicionamiento del LDR, asi como la implementación del firmware del microcontrolador y la aplicación CLI.
+
+\subsection{Descripción del Dispositivo}
+% - componentes: 
+%     - carcasa ✔️
+%     - uC ✔️
+%     - LED ✔️
+%     - LDR ✔️
+
+El dispositivo en su forma más simple consiste de un LDR que actúa como transductor, un iluminante que hace incidir luz de color rojo, verde y azul sobre la superficie objetivo. Dado que el LDR varía su resistencia en base a la cantidad de luz que incide sobre su superficie, es necesario convertir este cambio de resistencia en una tensión que pueda ser muestreada por un conversor analógico-digital (ADC). Para ello se diseño un circuito de adaptación, descrito en detalle en la Sección \ref{sec:circ_acond}, que convierte la resistencia del LDR en tensión, y es capaz de funcionar sobre un amplio rango de valores de resistencia.
+
+% carcasa
+Para poder tomar mediciones es necesario aislar el dispositivo de la luz ambiente, ya que esta interferiría con los iluminantes propios del dispositivo y distorsionaría las mediciones. Por ello, es diseño una carcasa especializada donde los iluminantes y el LDR pueden funcionar sin interferencia de la luz externa. Las vistas frontal e inferior se muestran en la Fig. \ref{fig:vistas_carcasa}. 
+
+La misma cuenta con dos tres compartimientos internos. El compartimiento inferior se apoya sobre la superficie objetivo y es iluminado por los LEDs; en la vista inferior de la Fig. \ref{fig:vistas_carcasa} se observa las ranuras donde van colocados los dos LEDs utilizados. El LDR se coloca en el compartimiento central, que se conecta con el compartimiento inferior mediante una pequeña apertura, lo que permite que la luz reflejada incida directamente sobre la superficie del LDR. Por último, el compartimiento superior se utiliza para las conexiones eléctricas de todos los componentes, y cuenta con una salida al exterior de la carcasa donde estos se conectan al circuito de acondicionamiento y microcontrolador.
+
+% TODO! foto de carcasa
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth,scale=1.5]{vistas_carcasa.pdf}
+    \caption{Vistas de la carcasa diseñada para el dispositivo.}
+    \label{fig:vistas_carcasa}
+\end{figure}
+
+% micro
+Como se mencionó anteriormente, el dispositivo está basado en la placa de desarrollo Raspberry Pi Pico, que utiliza el microcontrolador RP2040 \cite{RP2040_datasheet}. Este cuenta con dos núcleos ARM Cortex-M0+, ADC de 12 bits, e implementa la capa física del protocolo USB, que permite su funcionamiento como dispositivo USB. El microcontrolador cuenta con más que suficiente poder de procesamiento para esta aplicación, pero su elección se basa principalmente en su disponibilidad y bajo costo, la facilidad de programación, y la capacidad de implementar interfaces de hardware específicos, que se verá a continuación.
+
+% LEDs
+El sensor utiliza LEDs RGB WS2812 como emisores, ya que cuentan con un factor de forma compacto, intensidad regulable, y un protocolo de comunicación sencillo. Este protocolo se basa en una señal cuadrada, donde la longitud de los pulsos altos y bajos definen un 0 lógico o 1 lógico. De esta forma se envía un código RGB de 24 bits que define el color de luz emitido por cada LED. 
+
+Pese a la simpleza del protocolo de comunicación, este funciona a una frecuencia relativamente elevada, de alrededor de \qty{800}{\kHz}. Las implementaciones típicas de drivers para estos dispositivos suelen consistir de procedimientos de "bit-banging" altamente optimizados, normalmente escritos directamente en lenguaje ensamblador. Sin embargo, el microcontrolador RP2040 utilizado incluye hardware especializado para desarrollar interfaces de hardware especializados, denominado I/O programable (PIO) \cite{RP2040_datasheet}.
+
+Las capacidades PIO del RP2040 permiten crear sub-programas que no requieren tiempo de procesador y pueden controlar los puertos GPIO del microcontrolador de manera precisa y confiable, lo que lo hace ideal para la implementación de un driver para los LEDs WS2812.
+
+% LDR
+Durante el desarrollo se probaron varios LDR de sulfuro de cadmio (CdS) en distintas condiciones de iluminación y se comprobó que todos tienen respuestas distintas ante los mismos estímulos de luz. Sin embargo, se pudo establecer que toman valores de resistencia en el rango de \qtyrange{1}{1000}{\kohm}. Además, tal como lo indica la hoja de datos del LDR GL5528 \cite{LDR_datasheet} utilizada como referencia, y la Fig.~\ref{fig:LDR_respuesta_espectral}, un LDR típico tiene distintas sensibilidades según la longitud de onda de la luz incidente. 
+
+Por estos motivos, se decidió desarrollar un procedimiento de calibración, que se debe realizar antes de tomar mediciones. Esto se describe detalladamente en el Apartado~\ref{sec:caracterizacion_LDR}. Otra característica a mencionar de los LDR es que su respuesta no es lineal, sino que su resistencia disminuye exponencialmente con la iluminancia, es decir, con la cantidad de luz que incide sobre la superficie sensible del LDR. La respuesta del LDR se suele aproximar con la Ec.~\ref{ec:respuesta_LDR_R}.
+
+\begin{equation} \label{ec:respuesta_LDR_R}
+    R = K_a E^{-\gamma}
+\end{equation}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.6\textwidth]{LDR_spectral_response.png}
+    \caption{Respuesta espectral del LDR GL5528 según su hoja de datos.}
+    \label{fig:LDR_respuesta_espectral}
+\end{figure}
+
+\subsection{Circuito de Acondicionamiento} \label{sec:circ_acond}
+
+% - op amp
+% - cd4066
+% - ecuacion G->Vo
+% - grafico de respuesta ideal
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=.6\textwidth]{circ_acond.png}
+    \caption{Esquemático del circuito de acondicionamiento.}
+    \label{fig:circ_acond}
+\end{figure}
+
+Un LDR disminuye su resistencia conforme aumenta la cantidad de luz que incide sobre su superficie sensible, es decir, la iluminancia. Para poder medir estos cambios de resistencia y poder determinar cuanta luz se refleja desde la superficie objetivo al LDR, se construyó el circuito de la Fig.~\ref{fig:circ_acond}. Este consiste de un amplificador inversor con un tensión de offset fija en su terminal no inversor. 
+
+La tensión $V_o$ a la salida del amplificador operacional de la Fig.~\ref{fig:circ_acond} se puede expresar como:
+
+\begin{equation}
+    V_o = V_{+} + (V_{+} - V_{s}) \frac{R_f}{R_{LDR}}
+\end{equation}
+
+, donde $V_{+}$ es la tensión de referencia en la entrada no inversora (\qty{3.3}{\V}), $V_s$ es la tensión a la que se conecta una de las terminales del LDR (\qty{5}{\V}), y $R_f$ y $R_{LDR}$ corresponden a la resistencia de realimentación y el LDR, respectivamente.
+
+La tensión de referencia $V_+$ se eligió de manera tal que coincida con la tensión de referencia del ADC, que en el caso del RP2040 es de \qty{3.3}{\V}\cite{RP2040_datasheet}. De esta forma, se protege al ADC ya que la tensión de salida del circuito de acondicionamiento nunca superará este valor, y a la vez, permite a todo el dispositivo funcionar con una única fuente de alimentación de \qty{5}{\V}.
+
+A su vez, debido al amplio rango de valores de resistencia que puede tomar el LDR, se utilizaron distintos valores de resistencia $R_f$ que permiten al dispositivo ajustar la ganancia del circuito de acondicionamiento. De lo contrario, utilizando una resistencia $R_f$ fija, el circuito solo funcionaría dentro de un rango limitado de la respuesta del LDR, y quedaría saturado para valores de resistencia fuera de este rango.
+
+Por este motivo, el circuito de adaptación utiliza tres valores de resistencia $R_f$ discretos, \qtylist{1;10;100}{\kohm}, que aseguran que la respuesta del circuito no se sature en el rango de funcionamiento del LDR previamente establecido (\qtyrange{1}{1000}{\kohm}). La Fig.~\ref{fig:respuesta_circuito} muestra la respuesta del circuito para los distintos valores de resistencia $R_f$.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{circuit_response.png}
+    \caption{Tensión de salida del circuito de acondicionamiento en función de la resistencia del LDR.}
+    \label{fig:respuesta_circuito}
+\end{figure}
+
+Se utilizó el switch bilateral cuádruple CD4066 \cite{cd4066_datasheet} para permitir el control programable de la resistencia $R_f$. Este circuito cuenta con cuatro canales independientes y está ampliamente disponible.
+
+\subsection{Caracterización del LDR} \label{sec:caracterizacion_LDR}
+% - sensibilidad a $\lambda$
+% - barrido por canal (variando intensidad)
+% - no se conoce la iluminancia real -> se aproxima con intensidad de LEDs
+% - se intenta rearmar la curva de respuesta del LDR para encontrar Ka y gamma
+
+\subsection{Proceso de Medición}
+\subsection{Implementación en Microcontrolador}
+\subsection{Aplicación de Linea de Comandos}
+
+\section{Resultados}
 
 \printbibliography
 
