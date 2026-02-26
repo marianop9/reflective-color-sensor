@@ -1,10 +1,10 @@
-\documentclass[12pt,a4paper,twoside,fleqn,draft]{article}
+\documentclass[12pt,a4paper,fleqn]{article}
 \usepackage{graphicx}
 	\graphicspath{{./img}}
 \usepackage{fancyhdr}
 \usepackage{makecell}
 \usepackage{indentfirst}
-\usepackage[spanish]{babel} % Paquete de idioma
+\usepackage[spanish]{babel}
 \usepackage{csquotes}
 \usepackage[font=footnotesize]{caption}
 \usepackage{subcaption}
@@ -17,7 +17,9 @@
 		group-digits=false,
 		output-complex-root=j
 	}
-\usepackage{hyperref} % Genera vínculos en referencias y citas 
+
+\usepackage{hyperref}
+\usepackage[spanish,capitalise]{cleveref}
 
 \begin{document}
 \renewcommand\refname {}
@@ -57,27 +59,31 @@ Departamento de Ingeniería Electrónica,\\ Facultad Regional San Francisco, Có
 \href{mailto:perezmariano7401@gmail.com}{perezmariano7401@gmail.com}\par
 
 \section{Introducción}
+
 El color es una percepción visual que surge debido a la detección de diferentes longitudes de onda que no son absorbidas por un objeto o superficie. El conjunto de señales de distintas frecuencias compone el color de dicho objeto. Éstas, dentro del espectro visible de la luz, abarcan una gama de colores que va desde el rojo, con frecuencias más bajas y longitudes de onda más largas, hasta el violeta, con frecuencias más altas y longitudes de onda más cortas.
 
 Durante el desarrollo de este trabajo, se diseñó e implementó un dispositivo que permite obtener un estimado del color de una superficie mediante la reflexión de luz. Este utiliza una resistencia dependiente de la luz (LDR) para la detección de la luz reflejada desde la superficie objetivo.
 
-El principio de funcionamiento es sencillo: el dispositivo se coloca sobre la superficie cuyo color se desea medir, y los iluminantes del sensor iluminan la superficie utilizando luz roja, verde, y azul por separado. Una vez iluminada la superficie, se mide la resistencia del LDR, y se estima la intensidad de la luz reflejada. El proceso se repite para cada color, y al final se obtiene una estimación del color de la superficie mediante un código RGB de 24 bits, el cual es un formato común y ampliamente utilizado para representar color, en especial de forma digital.
+El principio de funcionamiento consiste en colocar el dispositivo sobre la superficie que se desea medir, y los iluminantes del sensor iluminan la superficie utilizando luz roja, verde, y azul por separado. Una vez iluminada la superficie, se mide la resistencia del LDR, y se estima la intensidad de la luz reflejada. El proceso se repite para cada color, y al final se obtiene una estimación del color de la superficie mediante un código RGB de 24 bits, el cual es un formato común y ampliamente utilizado para representar color, en especial de forma digital.
 
 Debido a la baja trazabilidad de los LDR en general y su amplio rango de respuesta (generalmente desde unos cuantos kilo-ohmios hasta el orden de los mega-ohmios), que además varía según la longitud de onda de la luz incidente, se implementó un procedimiento para caracterizar la respuesta del LDR. El objetivo es determinar la respuesta del LDR a las distintas longitudes de onda para mejorar las mediciones obtenidas.
 
-Para tomar las mediciones se desarrolló un circuito de acondicionamiento para el LDR y un microcontrolador Raspberry Pi Pico. El microcontrolador a su vez implementa un protocolo de comunicación simple mediante USB (puerto serie virtual), que le permite funcionar como dispositivo USB e intercambiar mensajes con una PC u otro host USB. 
+Para tomar las mediciones se desarrolló un circuito de acondicionamiento para el LDR y un microcontrolador Raspberry Pi Pico. El microcontrolador a su vez implementa un protocolo de comunicación simple mediante USB (puerto serie virtual), que le permite funcionar como dispositivo USB e intercambiar mensajes con una PC u otro host USB.
 
 Por último, se desarrolló una aplicación CLI (interfaz de línea de comandos), que permite la comunicación con el dispositivo a través de USB. La principal motivación fue para facilitar el análisis de datos y la caracterización del LDR utilizando lenguajes de programación de alto nivel, tales como Python.
 
 \subsection{Antecedentes}
+
 Las opciones comerciales de este tipo de dispositivos suelen medir color al incidir sobre la superficie objetivo, rayos provenientes de una fuente de luz blanca. El color se determina mediante un arreglo de foto-detectores, que generalmente consisten de foto-diodos con filtros RGB; cada foto-diodo detecta la intensidad de luz reflejada para una longitud de onda especifica, y se determina el color de la superficie en base a las intensidades relativas de luz captadas por cada uno. Este trabajo busca explorar la posibilidad de cumplir la misma función utilizando componentes más fácilmente accesibles y económicos.
 
 \subsection{Objetivos}
+
 El objetivo de este trabajo consiste en desarrollar un dispositivo de bajo costo que permita determinar el color de un objeto con un grado de precisión aceptable mediante la reflexión de luz sobre su superficie. A su vez, se implementará un procedimiento de calibración para conocer la respuesta del LDR utilizado en el dispositivo. Para facilitar la operación y el procesamiento de las mediciones, se desarrollará además una aplicación de escritorio que permita interactuar con el dispositivo y visualizar los resultados obtenidos.
 
 % TODO! Revisar y ver si sacar:
 \subsection{Funcionamiento}
-Como se observa en la Fig. \ref{fig:diagrama_inicial.png}, el sistema propuesto se basa en la implementación de una Raspberry Pi Pico W, encargada del procesamiento central. El proceso inicia con todos los LED apagados; transcurrido un tiempo determinado, se activa el LED rojo, que ilumina la superficie objetivo. Mediante un LDR se detecta la reflexión difusa de dicha superficie, y una fuente de corriente ajustable convierte la resistencia del sensor LDR en una señal de tensión. Esta señal analógica se pasa por un filtro pasa-bajos, con el fin de atenuar el ruido de alta frecuencia. Una vez filtrada, la señal es muestreada por el ADC de la Pico W, haciendo uso del DMA y se realiza un filtrado digital adicional para optimizar la adquisición de datos.
+
+Como se observa en la \cref{fig:diagrama_inicial.png}, el sistema propuesto se basa en la implementación de una Raspberry Pi Pico W, encargada del procesamiento central. El proceso inicia con todos los LED apagados; transcurrido un tiempo determinado, se activa el LED rojo, que ilumina la superficie objetivo. Mediante un LDR se detecta la reflexión difusa de dicha superficie, y una fuente de corriente ajustable convierte la resistencia del sensor LDR en una señal de tensión. Esta señal analógica se pasa por un filtro pasa-bajos, con el fin de atenuar el ruido de alta frecuencia. Una vez filtrada, la señal es muestreada por el ADC de la Pico W, haciendo uso del DMA y se realiza un filtrado digital adicional para optimizar la adquisición de datos.
 
 El procedimiento se repite de manera secuencial para los tres componentes de color (rojo, verde y azul), permitiendo obtener un conjunto de mediciones que representan la respuesta espectral de la superficie. Con estos valores, el sistema realiza el procesamiento y determinación del color resultante, el cual se visualiza a través de una página web. Dicha página también permite al usuario ejecutar mediciones de forma remota, calibrar el dispositivo y visualizar los resultados de mediciones previas. Todo esto se logra a través de un servidor web embebido dentro del microcontrolador.
 
@@ -91,12 +97,12 @@ A continuación se describen en detalle los distintos aspectos del dispositivo, 
 %     - LED ✔️
 %     - LDR ✔️
 
-El dispositivo en su forma más simple consiste de un LDR que actúa como transductor, un iluminante que hace incidir luz de color rojo, verde y azul sobre la superficie objetivo. Dado que el LDR varía su resistencia en base a la cantidad de luz que incide sobre su superficie, es necesario convertir este cambio de resistencia en una tensión que pueda ser muestreada por un conversor analógico-digital (ADC). Para ello se diseño un circuito de adaptación, descrito en detalle en la Sección \ref{sec:circ_acond}, que convierte la resistencia del LDR en tensión, y es capaz de funcionar sobre un amplio rango de valores de resistencia.
+El dispositivo en su forma más simple consiste de un LDR que actúa como transductor, un iluminante que hace incidir luz de color rojo, verde y azul sobre la superficie objetivo. Dado que el LDR varía su resistencia en base a la cantidad de luz que incide sobre su superficie, es necesario convertir este cambio de resistencia en una tensión que pueda ser muestreada por un conversor analógico-digital (ADC). Para ello se diseño un circuito de adaptación, descrito en detalle en el \cref{sec:circ_acond}, que convierte la resistencia del LDR en tensión, y es capaz de funcionar sobre un amplio rango de valores de resistencia.
 
 % carcasa
-Para poder tomar mediciones es necesario aislar el dispositivo de la luz ambiente, ya que esta interferiría con los iluminantes propios del dispositivo y distorsionaría las mediciones. Por ello, es diseño una carcasa especializada donde los iluminantes y el LDR pueden funcionar sin interferencia de la luz externa. Las vistas frontal e inferior se muestran en la Fig. \ref{fig:vistas_carcasa}. 
+Para poder tomar mediciones es necesario aislar el dispositivo de la luz ambiente, ya que esta interferiría con los iluminantes propios del dispositivo y distorsionaría las mediciones. Por ello, es diseño una carcasa especializada donde los iluminantes y el LDR pueden funcionar sin interferencia de la luz externa. Las vistas frontal e inferior se muestran en la \cref{fig:vistas_carcasa}.
 
-La misma cuenta con dos tres compartimientos internos. El compartimiento inferior se apoya sobre la superficie objetivo y es iluminado por los LEDs; en la vista inferior de la Fig. \ref{fig:vistas_carcasa} se observa las ranuras donde van colocados los dos LEDs utilizados. El LDR se coloca en el compartimiento central, que se conecta con el compartimiento inferior mediante una pequeña apertura, lo que permite que la luz reflejada incida directamente sobre la superficie del LDR. Por último, el compartimiento superior se utiliza para las conexiones eléctricas de todos los componentes, y cuenta con una salida al exterior de la carcasa donde estos se conectan al circuito de acondicionamiento y microcontrolador.
+La misma cuenta con dos tres compartimientos internos. El compartimiento inferior se apoya sobre la superficie objetivo y es iluminado por los LEDs; en la vista inferior de la \cref{fig:vistas_carcasa} se observa las ranuras donde van colocados los dos LEDs utilizados. El LDR se coloca en el compartimiento central, que se conecta con el compartimiento inferior mediante una pequeña apertura, lo que permite que la luz reflejada incida directamente sobre la superficie del LDR. Por último, el compartimiento superior se utiliza para las conexiones eléctricas de todos los componentes, y cuenta con una salida al exterior de la carcasa donde estos se conectan al circuito de acondicionamiento y microcontrolador.
 
 % TODO! foto de carcasa
 
@@ -111,18 +117,18 @@ La misma cuenta con dos tres compartimientos internos. El compartimiento inferio
 Como se mencionó anteriormente, el dispositivo está basado en la placa de desarrollo Raspberry Pi Pico, que utiliza el microcontrolador RP2040 \cite{RP2040_datasheet}. Este cuenta con dos núcleos ARM Cortex-M0+, ADC de 12 bits, e implementa la capa física del protocolo USB, que permite su funcionamiento como dispositivo USB. El microcontrolador cuenta con más que suficiente poder de procesamiento para esta aplicación, pero su elección se basa principalmente en su disponibilidad y bajo costo, la facilidad de programación, y la capacidad de implementar interfaces de hardware específicos, que se verá a continuación.
 
 % LEDs
-El sensor utiliza LEDs RGB WS2812 como emisores, ya que cuentan con un factor de forma compacto, intensidad regulable, y un protocolo de comunicación sencillo. Este protocolo se basa en una señal cuadrada, donde la longitud de los pulsos altos y bajos definen un 0 lógico o 1 lógico. De esta forma se envía un código RGB de 24 bits que define el color de luz emitido por cada LED. 
+El sensor utiliza LEDs RGB WS2812 como emisores, ya que cuentan con un factor de forma compacto, intensidad regulable, y un protocolo de comunicación sencillo. Este protocolo se basa en una señal cuadrada, donde la longitud de los pulsos altos y bajos definen un 0 lógico o 1 lógico. De esta forma se envía un código RGB de 24 bits que define el color de luz emitido por cada LED.
 
 Pese a la simpleza del protocolo de comunicación, este funciona a una frecuencia relativamente elevada, de alrededor de \qty{800}{\kHz}. Las implementaciones típicas de drivers para estos dispositivos suelen consistir de procedimientos de "bit-banging" altamente optimizados, normalmente escritos directamente en lenguaje ensamblador. Sin embargo, el microcontrolador RP2040 utilizado incluye hardware especializado para desarrollar interfaces de hardware especializados, denominado I/O programable (PIO) \cite{RP2040_datasheet}.
 
 Las capacidades PIO del RP2040 permiten crear sub-programas que no requieren tiempo de procesador y pueden controlar los puertos GPIO del microcontrolador de manera precisa y confiable, lo que lo hace ideal para la implementación de un driver para los LEDs WS2812.
 
 % LDR
-Durante el desarrollo se probaron varios LDR de sulfuro de cadmio (CdS) en distintas condiciones de iluminación y se comprobó que todos tienen respuestas distintas ante los mismos estímulos de luz. Sin embargo, se pudo establecer que toman valores de resistencia en el rango de \qtyrange{1}{1000}{\kohm}. Además, tal como lo indica la hoja de datos del LDR GL5528 \cite{LDR_datasheet} utilizada como referencia, y la Fig.~\ref{fig:LDR_respuesta_espectral}, un LDR típico tiene distintas sensibilidades según la longitud de onda de la luz incidente. 
+Durante el desarrollo se probaron varios LDR de sulfuro de cadmio (CdS) en distintas condiciones de iluminación y se comprobó que todos tienen respuestas distintas ante los mismos estímulos de luz. Sin embargo, se pudo establecer que toman valores de resistencia en el rango de \qtyrange{1}{1000}{\kohm}. Además, tal como lo indica la hoja de datos del LDR GL5528 \cite{LDR_datasheet} utilizada como referencia, y la \cref{fig:LDR_respuesta_espectral}, un LDR típico tiene distintas sensibilidades según la longitud de onda de la luz incidente.
 
-Por estos motivos, se decidió desarrollar un procedimiento de calibración, que se debe realizar antes de tomar mediciones. Esto se describe detalladamente en el Apartado~\ref{sec:caracterizacion_LDR}. Otra característica a mencionar de los LDR es que su respuesta no es lineal, sino que su resistencia disminuye exponencialmente con la iluminancia, es decir, con la cantidad de luz que incide sobre la superficie sensible del LDR. La respuesta del LDR se suele aproximar con la Ec.~\ref{ec:respuesta_LDR_R}.
+Por estos motivos, se decidió desarrollar un procedimiento de calibración, que se debe realizar antes de tomar mediciones. Esto se describe      a mencionar de los LDR es que su respuesta no es lineal, sino que su resistencia disminuye exponencialmente con la iluminancia, es decir, con la cantidad de luz que incide sobre la superficie sensible del LDR. La respuesta del LDR se suele aproximar con la \cref{eq:respuesta_LDR_R}.
 
-\begin{equation} \label{ec:respuesta_LDR_R}
+\begin{equation} \label{eq:respuesta_LDR_R}
     R = K_a E^{-\gamma}
 \end{equation}
 
@@ -147,11 +153,11 @@ Por estos motivos, se decidió desarrollar un procedimiento de calibración, que
     \label{fig:circ_acond}
 \end{figure}
 
-Un LDR disminuye su resistencia conforme aumenta la cantidad de luz que incide sobre su superficie sensible, es decir, la iluminancia. Para poder medir estos cambios de resistencia y poder determinar cuanta luz se refleja desde la superficie objetivo al LDR, se construyó el circuito de la Fig.~\ref{fig:circ_acond}. Este consiste de un amplificador inversor con un tensión de offset fija en su terminal no inversor. 
+Un LDR disminuye su resistencia conforme aumenta la cantidad de luz que incide sobre su superficie sensible, es decir, la iluminancia. Para poder medir estos cambios de resistencia y poder determinar cuanta luz se refleja desde la superficie objetivo al LDR, se construyó el circuito de la \cref{fig:circ_acond}. Este consiste de un amplificador inversor con un tensión de offset fija en su terminal no inversor.
 
-La tensión $V_o$ a la salida del amplificador operacional de la Fig.~\ref{fig:circ_acond} se puede expresar como:
+La tensión $V_o$ a la salida del amplificador operacional de la \cref{fig:circ_acond} se puede expresar como:
 
-\begin{equation}
+\begin{equation} \label{eq:circ_acond_R}
     V_o = V_{+} + (V_{+} - V_{s}) \frac{R_f}{R_{LDR}}
 \end{equation}
 
@@ -161,11 +167,11 @@ La tensión de referencia $V_+$ se eligió de manera tal que coincida con la ten
 
 A su vez, debido al amplio rango de valores de resistencia que puede tomar el LDR, se utilizaron distintos valores de resistencia $R_f$ que permiten al dispositivo ajustar la ganancia del circuito de acondicionamiento. De lo contrario, utilizando una resistencia $R_f$ fija, el circuito solo funcionaría dentro de un rango limitado de la respuesta del LDR, y quedaría saturado para valores de resistencia fuera de este rango.
 
-Por este motivo, el circuito de adaptación utiliza tres valores de resistencia $R_f$ discretos, \qtylist{1;10;100}{\kohm}, que aseguran que la respuesta del circuito no se sature en el rango de funcionamiento del LDR previamente establecido (\qtyrange{1}{1000}{\kohm}). La Fig.~\ref{fig:respuesta_circuito} muestra la respuesta del circuito para los distintos valores de resistencia $R_f$.
+Por este motivo, el circuito de adaptación utiliza tres valores de resistencia $R_f$ discretos, \qtylist{1;10;100}{\kohm}, que aseguran que la respuesta del circuito no se sature en el rango de funcionamiento del LDR previamente establecido (\qtyrange{1}{1000}{\kohm}). La \cref{fig:respuesta_circuito} muestra la respuesta del circuito para los distintos valores de resistencia $R_f$.
 
 \begin{figure}[h]
     \centering
-    \includegraphics[width=0.8\textwidth]{circuit_response.png}
+    \includegraphics[width=0.7\textwidth]{circuit_response.png}
     \caption{Tensión de salida del circuito de acondicionamiento en función de la resistencia del LDR.}
     \label{fig:respuesta_circuito}
 \end{figure}
@@ -173,14 +179,127 @@ Por este motivo, el circuito de adaptación utiliza tres valores de resistencia 
 Se utilizó el switch bilateral cuádruple CD4066 \cite{cd4066_datasheet} para permitir el control programable de la resistencia $R_f$. Este circuito cuenta con cuatro canales independientes y está ampliamente disponible.
 
 \subsection{Caracterización del LDR} \label{sec:caracterizacion_LDR}
+
+Para poder tomar mediciones confiables y repetibles utilizando un LDR, resulta necesario un proceso de calibración, ya que no todos se comportan de la misma forma. Además, de la \cref{fig:LDR_respuesta_espectral} se puede concluir que cada LDR se exhibirá respuestas distintas según la longitud de onda de la luz incidente.
+
+Por estos motivos, en el desarrollo de este trabajo se buscó poder caracterizar el LDR del dispositivo, calculando los parámetros $K_a$ y $\gamma$ de la \cref{eq:respuesta_LDR_R} de manera empírica.
+
+Otro detalle a mencionar es que en el presente trabajo se decidió trabajar en términos de la conductancia $G$ del LDR, en lugar de su resistencia $R$. Esto se debe principalmente a que de esta manera, la conductancia aumenta al aumentar la cantidad de luz que incide sobre el LDR. Por lo tanto, las \cref{eq:respuesta_LDR_R,eq:circ_acond_R} se pueden expresar en términos de la conductancia como:
+
+\begin{align}
+    G   & = K_a E^{\gamma} \label{eq:respuesta_LDR_G}             \\
+    V_o & = V_{+} + (V_{+} - V_{s}) R_f G \label{eq:circ_acond_G}
+\end{align}
+
+De la \cref{eq:respuesta_LDR_G} se puede despejar fácilmente una ecuación para la conductancia del LDR en función de la tensión de salida del circuito de acondicionamiento:
+
+\begin{equation} \label{eq:conductancia_Vo}
+    G = \frac{V_+ - V_o}{R_f * (V_s-V_+)}
+\end{equation}
+% 
+, donde $V_+$ es la tensión de referencia del ADC (\qty{3.3}{\V}), $V_s$ es la tensión de alimentación del circuito (\qty{5}{\V}), y $R_f$ es la resistencia de realimentación.
+
+El procedimiento de caracterización consiste en colocar el dispositivo sobre una superficie de calibración y configurar los LED para iluminar la superficie a distintas intensidades, tomando muestras de la tensión en la salida del circuito de acondicionamiento para cada una.
+
+Una vez que se recolectan suficientes muestras, se aplica la técnica de mínimos cuadrados para encontrar los parámetros de \cref{eq:respuesta_LDR_G} que mejor se aproximen a los resultados obtenidos.
+
+La superficie de calibración se eligió de manera arbitraria, priorizando superficies de color blanco y opacas, tal que se minimice la reflexión especular en favor de la reflexión difusa.
+
+Como se mencionó previamente, y en base a lo observado en la \cref{fig:LDR_respuesta_espectral}, el LDR no responde de la misma manera a todas las longitudes de onda. Por lo tanto, este barrido de intensidades de los LED se realizó una vez para cada color utilizado por el sensor: rojo, verde y azul.
+
+Además, debido a que no se cuentan con los elementos necesarios para medir la cantidad de luz que incide sobre la superficie sensible del LDR, es decir, la iluminancia $E$, para este proceso de caracterización se aproximó la iluminancia $E$ como la intensidad $c$ configurada para los LEDs del dispositivo.
+
+La intensidad $c$ de cada LED del dispositivo se puede configurar mediante un código RGB de \qty{24}{bits}, utilizando \qty{8}{bits} para cada canal. Esto significada que cada LED se puede configurar para estar apagado, o en uno de 255 niveles de intensidad.
+
+Reemplazando la aproximación $E \approx c$ en la \cref{eq:respuesta_LDR_G}, se obtiene:
+
+\begin{equation} \label{eq:respuesta_LDR_aprox}
+    G = K_a c^{\gamma}
+\end{equation}
+
+Para la secuencia de barrido, se eligieron valores de intensidad desde \numrange{0}{255} con espaciado logarítmico. Se realizaron pruebas utilizando 30 y 40 valores, y se obtuvieron resultados similares. Para cada paso del barrido se registró la intensidad configurada para los LED, la tensión muestreada por el ADC \qty{400}{\ms} luego de ser configurado el valor de intensidad, y el valor de la resistencia $R_f$.
+
+Además, se definió una región de funcionamiento donde el dispositivo no se considera saturado. Los límites de esta región se eligieron en base a un análisis de la tensión muestreada en el ADC de \qty{12}{bits} del RP2040. Se encontró que para muestras del ADC con un código por debajo de 850, no se registraban cambios al variar la intensidad de los LED. Lo mismo ocurrió para muestras con códigos por encima de 3800. Por lo tanto, cuando una muestra se encuentra fuera de este rango, se ajusta la resistencia $R_f$ para cambiar la ganancia del circuito, aumentando o reduciendo la tensión de salida según sea necesario, y se repite la medición.
+
+El barrido siempre comienza utilizando el valor de resistencia más grande, $R_f=\qty{100}{\kohm}$. Esto se debe a que para intensidades de luz bajas, la conductancia del LDR es muy pequeña, por lo tanto, según la \cref{eq:respuesta_LDR_G} se necesita una resistencia $R_f$ grande para obtener un valor de tensión que se encuentre dentro del rango de funcionamiento del sensor.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=.7\textwidth]{respuesta_barrido.png}
+    \caption{Muestras recolectadas en un barrido de 40 valores de intensidad para el canal rojo.}
+    \label{fig:ADC_intensidad}
+\end{figure}
+
+En la \cref{fig:ADC_intensidad} se observa las muestras obtenidas para un barrido del canal rojo. Las discontinuidades corresponden a los cambios de la resistencia $R_f$. Se observa además que las muestras se encuentran siempre dentro de la región de funcionamiento definida anteriormente.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=.7\textwidth]{conductancia_intensidad.png}
+    \caption{Conductancia calculada a partir del barrido de intensidad para el canal rojo.}
+    \label{fig:conductancia_intensidad}
+\end{figure}
+
+En la \cref{fig:conductancia_intensidad} se muestra el resultado de aplicar la \cref{eq:conductancia_Vo} a las muestras de la \cref{fig:ADC_intensidad}. Se utiliza una escala logarítmica para la intensidad, mostrada en el eje $x$, ya que la respuesta del LDR no es lineal, tal como lo demuestra la \cref{eq:respuesta_LDR_aprox}.
+
+Una vez recolectadas las muestras y calculada la conductancia del LDR para cada una, se procedió aplicando la técnica de mínimos cuadrados para obtener una aproximación de la respuesta dispositivo. La $i$-ésima muestra recolectada se expresa como:
+\begin{equation*}
+    G_i = K_a c_i^\gamma
+\end{equation*}
+
+Dado que se quieren encontrar los valores de $K_a$ y $\gamma$, se aplica la función logaritmo de ambos lados y se obtiene:
+\begin{equation}
+    \ln G_i = \ln K_a + \gamma \ln c
+\end{equation}
+
+Considerando $N$ muestras distintas, se arma un sistema de ecuaciones y se expresa en forma de matrices:
+
+\begin{equation}
+    \begin{bmatrix}
+        G_1    \\
+        G_2    \\
+        \vdots \\
+        G_N
+    \end{bmatrix}
+    =
+    \begin{bmatrix}
+        1      & \ln c_1 \\
+        1      & \ln c_2 \\
+        \vdots & \vdots  \\
+        1      & \ln c_N
+    \end{bmatrix}
+    \begin{bmatrix}
+        \ln K_a \\
+        \gamma
+    \end{bmatrix}
+\end{equation}
+
+El valor de la matriz de las variables desconocidas se puede obtener a partir de la \cref{eq:LSQ_formula}, donde $Y$ es la matriz de las conductancias, $A$ es la matriz de los coeficientes ($1$ y $\ln c_i$), y $x$ la matriz de las variables que se quieren calcular.
+
+\begin{equation} \label{eq:LSQ_formula}
+    x = (A^T A)^{-1} A^T Y
+\end{equation}
+
+La aplicación de escritorio que se utilizó para interactuar con el dispositivo cuenta con funcionalidad para exportar las muestras recolectadas en formato JSON, lo cual se detalla a fondo en la \cref{sec:aplicacion_CLI}. Por lo tanto, se utilizaron las librerías de Python \textit{pandas} y \textit{numpy} para analizar los datos recolectados. 
+
+En la \cref{fig:conductancia_intensidad_LSQ} se muestra la curva de la \cref{eq:respuesta_LDR_aprox} obtenida con los parámetros $K_a$ y $\gamma$ calculados en base a los resultados obtenidos para el color rojo. Se observa que la aproximación obtenida es muy buena para valores de intensidad bajos, pero se vuelve menos precisa para valores mas altos.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=.7\textwidth]{conductancia_intensidad_LSQ.png}
+    \caption{Comparación de la conductancia calculada del barrido de intensidad para el canal rojo, y la aproximación encontrada para la \cref{eq:respuesta_LDR_aprox}.}
+    \label{fig:conductancia_intensidad_LSQ}
+\end{figure}
+
 % - sensibilidad a $\lambda$
 % - barrido por canal (variando intensidad)
 % - no se conoce la iluminancia real -> se aproxima con intensidad de LEDs
 % - se intenta rearmar la curva de respuesta del LDR para encontrar Ka y gamma
 
 \subsection{Proceso de Medición}
+
 \subsection{Implementación en Microcontrolador}
-\subsection{Aplicación de Linea de Comandos}
+
+\subsection{Aplicación de Linea de Comandos} \label{sec:aplicacion_CLI}
 
 \section{Resultados}
 
