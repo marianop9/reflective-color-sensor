@@ -1,0 +1,574 @@
+(serialpal) measure
+b'&SET_RES,,*'
+OK (11)
+b'&SET_LED,0,0xff0000*'
+OK (20)
+b'&SET_RES,+,*'
+OK (12)
+b'&SET_RES,+,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan R: adc=124.125
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan R: adc=810.925
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan R: adc=2259.725
+chan R: color=159
+b'&SET_LED,0,0xff00*'
+OK (18)
+b'&SET_RES,+,*'
+OK (12)
+b'&SET_RES,+,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan G: adc=121.9
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan G: adc=803.825
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan G: adc=3246.325
+chan G: color=271
+b'&SET_LED,0,0xff*'
+OK (16)
+b'&SET_RES,+,*'
+OK (12)
+b'&SET_RES,+,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan B: adc=118.25
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan B: adc=795.0
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan B: adc=3614.1
+chan B: color=184
+b'&SET_LED,0,0x0*'
+OK (15)
+rgb(159, 255, 184)
+
+
+
+
+
+
+(serialpal) measure
+b'&SET_RES,,*'
+OK (11)
+b'&SET_LED,0,0xff0000*'
+OK (20)
+b'&SET_RES,+,*'
+OK (12)
+b'&SET_RES,+,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan R: adc=123.925
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan R: adc=810.875
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan R: adc=2258.175
+chan R: color=159
+b'&SET_LED,0,0xff00*'
+OK (18)
+b'&SET_RES,+,*'
+OK (12)
+b'&SET_RES,+,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan G: adc=122.0
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan G: adc=804.2
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan G: adc=3261.7
+chan G: color=265
+b'&SET_LED,0,0xff*'
+OK (16)
+b'&SET_RES,+,*'
+OK (12)
+b'&SET_RES,+,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan B: adc=118.5
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan B: adc=794.85
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan B: adc=3624.55
+chan B: color=179
+b'&SET_LED,0,0x0*'
+OK (15)
+rgb(159, 255, 179)
+
+
+
+
+
+
+(serialpal) measure
+b'&SET_RES,,*'
+OK (11)
+b'&SET_LED,0,0xff0000*'
+OK (20)
+b'&SET_RES,+,*'
+OK (12)
+b'&SET_RES,+,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan R: adc=124.3
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan R: adc=812.35
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan R: adc=1487.725
+chan R: color=240
+b'&SET_LED,0,0xff00*'
+OK (18)
+b'&SET_RES,+,*'
+OK (12)
+b'&SET_RES,+,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan G: adc=122.325
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan G: adc=804.95
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan G: adc=3146.45
+chan G: color=309
+b'&SET_LED,0,0xff*'
+OK (16)
+b'&SET_RES,+,*'
+OK (12)
+b'&SET_RES,+,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan B: adc=119.7
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan B: adc=797.6
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan B: adc=3534.925
+chan B: color=221
+b'&SET_LED,0,0x0*'
+OK (15)
+rgb(240, 255, 221)
+
+
+
+
+
+
+(serialpal) measure
+b'&SET_RES,,*'
+OK (11)
+b'&SET_LED,0,0xff0000*'
+OK (20)
+b'&SET_RES,+,*'
+OK (12)
+b'&SET_RES,+,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan R: adc=124.625
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan R: adc=812.775
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan R: adc=1502.6
+chan R: color=239
+b'&SET_LED,0,0xff00*'
+OK (18)
+b'&SET_RES,+,*'
+OK (12)
+b'&SET_RES,+,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan G: adc=122.25
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan G: adc=805.175
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan G: adc=3156.3
+chan G: color=305
+b'&SET_LED,0,0xff*'
+OK (16)
+b'&SET_RES,+,*'
+OK (12)
+b'&SET_RES,+,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan B: adc=119.775
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan B: adc=797.35
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan B: adc=3541.8
+chan B: color=218
+b'&SET_LED,0,0x0*'
+OK (15)
+rgb(239, 255, 218)
+
+
+
+
+
+
+(serialpal) measure
+b'&SET_RES,,*'
+OK (11)
+b'&SET_LED,0,0xff0000*'
+OK (20)
+b'&SET_RES,+,*'
+OK (12)
+b'&SET_RES,+,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan R: adc=123.85
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan R: adc=809.75
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan R: adc=2509.325
+chan R: color=134
+b'&SET_LED,0,0xff00*'
+OK (18)
+b'&SET_RES,+,*'
+OK (12)
+b'&SET_RES,+,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan G: adc=121.85
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan G: adc=803.3
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan G: adc=3285.925
+chan G: color=256
+b'&SET_LED,0,0xff*'
+OK (16)
+b'&SET_RES,+,*'
+OK (12)
+b'&SET_RES,+,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan B: adc=121.05
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan B: adc=801.1
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan B: adc=3404.95
+chan B: color=285
+b'&SET_LED,0,0x0*'
+OK (15)
+rgb(134, 255, 255)
+
+
+
+
+
+
+(serialpal) measure
+b'&SET_RES,,*'
+OK (11)
+b'&SET_LED,0,0xff0000*'
+OK (20)
+b'&SET_RES,+,*'
+OK (12)
+b'&SET_RES,+,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan R: adc=123.625
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan R: adc=809.85
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan R: adc=2499.725
+chan R: color=135
+b'&SET_LED,0,0xff00*'
+OK (18)
+b'&SET_RES,+,*'
+OK (12)
+b'&SET_RES,+,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan G: adc=122.0
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan G: adc=803.15
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan G: adc=3285.725
+chan G: color=257
+b'&SET_LED,0,0xff*'
+OK (16)
+b'&SET_RES,+,*'
+OK (12)
+b'&SET_RES,+,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan B: adc=121.075
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan B: adc=800.85
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan B: adc=3405.35
+chan B: color=285
+b'&SET_LED,0,0x0*'
+OK (15)
+rgb(135, 255, 255)
+
+
+
+
+
+
+(serialpal) measure
+b'&SET_RES,,*'
+OK (11)
+b'&SET_LED,0,0xff0000*'
+OK (20)
+b'&SET_RES,+,*'
+OK (12)
+b'&SET_RES,+,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan R: adc=124.675
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan R: adc=812.6
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan R: adc=1593.7
+chan R: color=229
+b'&SET_LED,0,0xff00*'
+OK (18)
+b'&SET_RES,+,*'
+OK (12)
+b'&SET_RES,+,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan G: adc=120.65
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan G: adc=798.925
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan G: adc=3505.275
+chan G: color=177
+b'&SET_LED,0,0xff*'
+OK (16)
+b'&SET_RES,+,*'
+OK (12)
+b'&SET_RES,+,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan B: adc=119.7
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan B: adc=797.1
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan B: adc=3556.3
+chan B: color=211
+b'&SET_LED,0,0x0*'
+OK (15)
+rgb(229, 177, 211)
+
+
+
+
+
+
+(serialpal) measure
+b'&SET_RES,,*'
+OK (11)
+b'&SET_LED,0,0xff0000*'
+OK (20)
+b'&SET_RES,+,*'
+OK (12)
+b'&SET_RES,+,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan R: adc=124.45
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan R: adc=812.6
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan R: adc=1596.1
+chan R: color=229
+b'&SET_LED,0,0xff00*'
+OK (18)
+b'&SET_RES,+,*'
+OK (12)
+b'&SET_RES,+,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan G: adc=120.325
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan G: adc=798.9
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan G: adc=3507.325
+chan G: color=177
+b'&SET_LED,0,0xff*'
+OK (16)
+b'&SET_RES,+,*'
+OK (12)
+b'&SET_RES,+,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan B: adc=119.875
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan B: adc=797.525
+b'&SET_RES,-,*'
+OK (12)
+b'&ADC,,*'
+OK (7)
+chan B: adc=3557.775
+chan B: color=211
+b'&SET_LED,0,0x0*'
+OK (15)
+rgb(229, 177, 211)
+
+
+
+
