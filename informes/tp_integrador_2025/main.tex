@@ -17,9 +17,9 @@
 		group-digits=false,
 		output-complex-root=j
 	}
-
 \usepackage{hyperref}
 \usepackage[spanish,capitalise]{cleveref}
+\usepackage{listings}
 
 \begin{document}
 \renewcommand\refname {}
@@ -81,11 +81,10 @@ Las opciones comerciales de este tipo de dispositivos suelen medir color al inci
 El objetivo de este trabajo consiste en desarrollar un dispositivo de bajo costo que permita determinar el color de un objeto con un grado de precisión aceptable mediante la reflexión de luz sobre su superficie. A su vez, se implementará un procedimiento de calibración para conocer la respuesta del LDR utilizado en el dispositivo. Para facilitar la operación y el procesamiento de las mediciones, se desarrollará además una aplicación de escritorio que permita interactuar con el dispositivo y visualizar los resultados obtenidos.
 
 % TODO! Revisar y ver si sacar:
-\subsection{Funcionamiento}
+% \subsection{Funcionamiento}
+% Como se observa en la \cref{fig:diagrama_inicial.png}, el sistema propuesto se basa en la implementación de una Raspberry Pi Pico W, encargada del procesamiento central. El proceso inicia con todos los LED apagados; transcurrido un tiempo determinado, se activa el LED rojo, que ilumina la superficie objetivo. Mediante un LDR se detecta la reflexión difusa de dicha superficie, y una fuente de corriente ajustable convierte la resistencia del sensor LDR en una señal de tensión. Esta señal analógica se pasa por un filtro pasa-bajos, con el fin de atenuar el ruido de alta frecuencia. Una vez filtrada, la señal es muestreada por el ADC de la Pico W, haciendo uso del DMA y se realiza un filtrado digital adicional para optimizar la adquisición de datos.
 
-Como se observa en la \cref{fig:diagrama_inicial.png}, el sistema propuesto se basa en la implementación de una Raspberry Pi Pico W, encargada del procesamiento central. El proceso inicia con todos los LED apagados; transcurrido un tiempo determinado, se activa el LED rojo, que ilumina la superficie objetivo. Mediante un LDR se detecta la reflexión difusa de dicha superficie, y una fuente de corriente ajustable convierte la resistencia del sensor LDR en una señal de tensión. Esta señal analógica se pasa por un filtro pasa-bajos, con el fin de atenuar el ruido de alta frecuencia. Una vez filtrada, la señal es muestreada por el ADC de la Pico W, haciendo uso del DMA y se realiza un filtrado digital adicional para optimizar la adquisición de datos.
-
-El procedimiento se repite de manera secuencial para los tres componentes de color (rojo, verde y azul), permitiendo obtener un conjunto de mediciones que representan la respuesta espectral de la superficie. Con estos valores, el sistema realiza el procesamiento y determinación del color resultante, el cual se visualiza a través de una página web. Dicha página también permite al usuario ejecutar mediciones de forma remota, calibrar el dispositivo y visualizar los resultados de mediciones previas. Todo esto se logra a través de un servidor web embebido dentro del microcontrolador.
+% El procedimiento se repite de manera secuencial para los tres componentes de color (rojo, verde y azul), permitiendo obtener un conjunto de mediciones que representan la respuesta espectral de la superficie. Con estos valores, el sistema realiza el procesamiento y determinación del color resultante, el cual se visualiza a través de una página web. Dicha página también permite al usuario ejecutar mediciones de forma remota, calibrar el dispositivo y visualizar los resultados de mediciones previas. Todo esto se logra a través de un servidor web embebido dentro del microcontrolador.
 
 \section{Desarrollo}
 A continuación se describen en detalle los distintos aspectos del dispositivo, incluyendo el hardware utilizado y el circuito de acondicionamiento del LDR, asi como la implementación del firmware del microcontrolador y la aplicación CLI.
@@ -126,7 +125,7 @@ Las capacidades PIO del RP2040 permiten crear sub-programas que no requieren tie
 % LDR
 Durante el desarrollo se probaron varios LDR de sulfuro de cadmio (CdS) en distintas condiciones de iluminación y se comprobó que todos tienen respuestas distintas ante los mismos estímulos de luz. Sin embargo, se pudo establecer que toman valores de resistencia en el rango de \qtyrange{1}{1000}{\kohm}. Además, tal como lo indica la hoja de datos del LDR GL5528 \cite{LDR_datasheet} utilizada como referencia, y la \cref{fig:LDR_respuesta_espectral}, un LDR típico tiene distintas sensibilidades según la longitud de onda de la luz incidente.
 
-Por estos motivos, se decidió desarrollar un procedimiento de calibración, que se debe realizar antes de tomar mediciones. Esto se describe      a mencionar de los LDR es que su respuesta no es lineal, sino que su resistencia disminuye exponencialmente con la iluminancia, es decir, con la cantidad de luz que incide sobre la superficie sensible del LDR. La respuesta del LDR se suele aproximar con la \cref{eq:respuesta_LDR_R}.
+Por estos motivos, se decidió desarrollar un procedimiento de calibración, que se debe realizar antes de tomar mediciones. Esto se describe      a mencionar de los LDR es que su respuesta no es lineal, sino que su resistencia disminuye exponencialmente con la luminancia, es decir, con la cantidad de luz que incide sobre la superficie sensible del LDR. La respuesta del LDR se suele aproximar con la \cref{eq:respuesta_LDR_R}.
 
 \begin{equation} \label{eq:respuesta_LDR_R}
     R = K_a E^{-\gamma}
@@ -255,10 +254,10 @@ Considerando $N$ muestras distintas, se arma un sistema de ecuaciones y se expre
 
 \begin{equation}
     \begin{bmatrix}
-        G_1    \\
-        G_2    \\
+        \ln G_1    \\
+        \ln G_2    \\
         \vdots \\
-        G_N
+        \ln G_N
     \end{bmatrix}
     =
     \begin{bmatrix}
@@ -297,7 +296,100 @@ En la \cref{fig:conductancia_intensidad_LSQ} se muestra la curva de la \cref{eq:
 
 \subsection{Proceso de Medición}
 
+% requiere los parametros del LDR
+% se enciende cada canal a la max intensidad
+% se mide la respuesta del LDR por separado
+% se calcula la intensidad reflejada en base a los parametros del LDR
+% se arma el codigo rgb
+
+Una vez que se calibró el dispositivo, ya es posible realizar mediciones. El proceso de medición comienza colocando el dispositivo sobre la superficie que se desea medir. Luego, el dispositivo enciende sus LED a la máxima intensidad utilizando los colores rojo, verde y azul por separado. Se toman muestras de la tensión a la salida del circuito de acondicionamiento para cada color, y se calcula la conductancia $G$ del LDR que se obtuvo para cada uno.
+
+Luego, se utilizan los parámetros obtenidos durante la calibración para determinar el color de la superficie. Debido a que la intensidad $c$ de la \cref{eq:respuesta_LDR_aprox} se mide en el rango de \numrange{0}{255}, los resultados para cada color se pueden combinar y representar directamente utilizando el código de colores RGB.
+
+Además, al igual que durante el proceso de calibración, se evita tomar resultados saturados asegurando que el dispositivo trabaje dentro de la región de funcionamiento previamente definida. En caso de que una muestra arroje un resultado fuera de esta zona, se ajusta el valor de la resistencia $R_f$ (si es posible), y se repite la medición.
+
 \subsection{Implementación en Microcontrolador}
+% - stack USB
+% - freeRTOS
+% - main()
+%     - inicializar perifericos: ADC, LEDs, cd4066
+%     - crear primitivas de sync
+%     - inicializar tusb
+% - tareas
+%     - usb_task: 
+%         - ejecuta el stack usb (tud_task)
+%         - procesar y enviar mensajes de respuesta (dev->host)
+%         - los comandos se reciben mediante callback y se pasan a worker_task por queue
+%     - worker_task:
+%         - procesa los comandos y prepara las respuestas
+%         - funciona de manera sincrona, puede procesar un solo comando a la vez
+%         - bloquea la ejecución cuando ejecuta tareas asincronas como el muestreo del ADC.
+%         - una vez terminado arma un mensaje de respuesta para comunicar el resultado de la operación.
+%     - led_task:
+%         - controla el LED del microcontrolador
+%             - USB conectado ? titila : fijo
+% - driver LEDs WS2812
+% - ADC+DMA
+
+El microcontrolador RP2040 es el encargado de controlar los periféricos y coordinar todas las operaciones del dispositivo, y actúa como dispositivo USB que permite al dispositivo conectarse a una PC y comunicarse mediante un protocolo de comunicación por puerto serie simple.
+
+La implementación del firmware en el microcontrolador se realizó en el lenguaje de programación C, utilizando la capa de abstracción de hardware \textit{Pico-SDK} \cite{pico_sdk_doc} provista por el fabricante.
+
+Para funcionar como dispositivo USB, se utilizó la librería \textit{TinyUSB} \cite{tinyusb_doc}, la cuál ofrece una implementación del stack USB para dispositivos embebidos. 
+
+Además, se utilizó el sistema operativo de tiempo real \textit{FreeRTOS}. La principal motivación es que este brinda herramientas para logar la sincronización de las distintas tareas que lleva a cabo el dispositivo, lo cuál es útil debido a la naturaleza asíncrona de la comunicación serial.
+
+El microcontrolador a su vez es el encargado de manejar todos los periféricos del dispositivo, los cuales incluyen:
+\begin{itemize}
+    \item Conversor analógico-digital (ADC)
+    \item LED WS2812
+    \item Switch bilateral cuádruple CD4066
+    \item LED indicador de estado
+\end{itemize}
+%
+Se implementó un driver para cada uno de estos, permitiendo a la aplicación principal utilizarlos sin conocer sus detalles de implementación. 
+
+\subsubsection{Protocolo de Comunicación}
+
+Se implementó un protocolo de comunicación simple para la comunicación dispositivo-PC. El mismo se basa en una versión modificada de la librería  \href{https://github.com/esadigov/ascii-communication-protocol}{esadigov/ascii-communication-protocol}, disponible en GitHub. 
+
+El protocolo implementado envía mensajes de texto plano, denominados comandos, desde la PC al dispositivo. Estos comandos son interpretados por el dispositivo para ejecutar alguna de sus funciones. Todos los comandos siguen el siguiente formato:
+%
+\begin{verbatim}
+    &<nombre-comando>,[argumento1],[argumento2]*
+\end{verbatim}
+
+Cada comando tiene un nombre único, y opcionalmente puede enviar hasta dos argumentos adicionales. Por ejemplo, el comando para encender ambos LED del dispositivo con color verde se envía como:
+%
+\begin{verbatim}
+    &SET_LED,0,0x00ff00*
+\end{verbatim}
+
+Una vez que el dispositivo termina de ejecutar la operación, el mismo arma un mensaje de respuesta para enviar de vuelta a la PC. Debido a que la respuesta muchas veces consiste de valores numéricos, como pueden ser una serie de muestras del ADC, esta respuesta se puede enviar utilizando una combinación de texto plano y datos binarios, utilizando el siguiente formato:
+%
+\begin{verbatim}
+    &<tipo-respuesta>,<num-bytes>;<mensaje>
+\end{verbatim}
+
+A diferencia del formato de un comando, el mensaje de respuesta no puede utilizar un terminador ASCII como \verb|*|, ya que el mensaje de respuesta podría incluir este mismo carácter. Además, si la respuesta contiene datos binarios, existe la posibilidad de que alguno de los bytes de la respuesta tenga el mismo valor ASCII que el carácter terminador. Por este motivo, el formato de respuesta especifica primero el numero de bytes del mensaje enviado, permitiendo que la aplicación de PC pueda leer el mensaje completo.
+
+\subsubsection{Conversor Analógico-Digital}
+
+
+
+\subsubsection{División de Tareas}
+
+\begin{lstlisting}[language=c, caption={caption text}]
+void worker_task(void *arg) {
+   acp_command_t cmd;
+   while (1) {
+       xQueueReceive(cmd_queue, &cmd, portMAX_DELAY);
+       switch (cmd.type) {
+           ...
+       }
+   }
+}
+\end{lstlisting}
 
 \subsection{Aplicación de Linea de Comandos} \label{sec:aplicacion_CLI}
 
