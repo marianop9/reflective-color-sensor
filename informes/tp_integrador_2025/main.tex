@@ -19,7 +19,9 @@
 	}
 \usepackage{hyperref}
 \usepackage[spanish,capitalise]{cleveref}
+
 \usepackage{listings}
+\renewcommand\lstlistingname{Listado}
 
 \begin{document}
 \renewcommand\refname {}
@@ -57,6 +59,10 @@ Departamento de Ingeniería Electrónica,\\ Facultad Regional San Francisco, Có
 \textbf{Perez, Mariano}\\
 Departamento de Ingeniería Electrónica,\\ Facultad Regional San Francisco, Córdoba, Argentina.\\
 \href{mailto:perezmariano7401@gmail.com}{perezmariano7401@gmail.com}\par
+
+\newpage
+\tableofcontents
+\newpage
 
 \section{Introducción}
 
@@ -368,30 +374,117 @@ Cada comando tiene un nombre único, y opcionalmente puede enviar hasta dos argu
 Una vez que el dispositivo termina de ejecutar la operación, el mismo arma un mensaje de respuesta para enviar de vuelta a la PC. Debido a que la respuesta muchas veces consiste de valores numéricos, como pueden ser una serie de muestras del ADC, esta respuesta se puede enviar utilizando una combinación de texto plano y datos binarios, utilizando el siguiente formato:
 %
 \begin{verbatim}
-    &<tipo-respuesta>,<num-bytes>;<mensaje>
+    &<tipo-respuesta>,<cantidad-bytes>;<bytes-mensaje>
 \end{verbatim}
 
 A diferencia del formato de un comando, el mensaje de respuesta no puede utilizar un terminador ASCII como \verb|*|, ya que el mensaje de respuesta podría incluir este mismo carácter. Además, si la respuesta contiene datos binarios, existe la posibilidad de que alguno de los bytes de la respuesta tenga el mismo valor ASCII que el carácter terminador. Por este motivo, el formato de respuesta especifica primero el numero de bytes del mensaje enviado, permitiendo que la aplicación de PC pueda leer el mensaje completo.
 
 \subsubsection{Conversor Analógico-Digital}
 
+Además de un ADC de \qty{12}{bits}, el RP2040 cuenta además con un controlador DMA que puede configurarse para trabajar junto al ADC. Esto permite al microcontrolador tomar una gran cantidad de muestras y guardarlas en memoria sin requerir de la intervención del procesador. 
 
+Pese a que el dispositivo no supone una carga importante para el procesador del RP2040, y que no se toma un número significativo de muestras del ADC, se decidió utilizarlo de todas formas ya que es muy fácil de configurar y reduce y simplifica el código al no tener que escribir lógica para tomar y guardar muestras individuales.
+
+El ADC se configuró con una frecuencia de muestreo de \qty{500}{Hz}, ya que el transductor LDR se caracteriza por tener una respuesta lenta. Sin embargo, se probaron distintos valores de frecuencia y se obtuvieron resultados similares. 
+
+Al iniciar el dispositivo, se inicializa el ADC por código y se conecta a un canal DMA libre. El DMA se configura para leer desde el registro de muestras del ADC (\verb|adc_hw->fifo|) \cite{RP2040_datasheet}, y escribir cada muestra en un arreglo en memoria. El tamaño del arreglo utilizado fue de 40 muestras.
+
+Debido a que la frecuencia de DMA es mucho mayor que la frecuencia de muestreo del ADC, se conecta la señal de solicitud de datos (\verb|DREQ|) del ADC al canal DMA, de manera que el DMA solo realice una transferencia cada vez que el ADC toma una nueva muestra.
+
+Finalmente, dado que la toma de muestras se realiza de manera asíncrona mediante DMA, es necesario sincronizar el final de la transferencia para que el programa pueda continuar. Por lo tanto, se configuró una interrupción para indicar el final de la transferencia por parte del DMA.
 
 \subsubsection{División de Tareas}
 
-\begin{lstlisting}[language=c, caption={caption text}]
+Las tareas que realiza el microcontrolador se pueden separar en dos partes clave: la comunicación USB por medio de la cual se reciben los comandos que debe ejecutar, y la ejecución de dichos comandos. Debido a que cada una tiene lógica especifica, ya sea la decodificación de comandos y codificación de respuestas, la lógica propia del stack USB, o la lógica individual que requiere la ejecución de cada comando, se definieron dos tareas: \verb|usb_task()| y \verb|worker_task()|.
+
+La estructura de la tarea \verb|usb_task()| se muestra en el Listado \ref{lst:usb_task}. La misma debe cumplir tres tareas especificas:
+\begin{enumerate}
+    \item Ejecutar el stack USB mediante la función \verb|tud_task()| de TinyUSB.
+    \item Recibir mensajes de respuesta a enviar por USB hacia el host.
+    \item Enviar las respuestas al host.
+\end{enumerate}
+
+Un aspecto crítico de la librería TinyUSB es que la misma no se ejecuta automáticamente como un proceso adicional de la aplicación, sino que se debe asegurar su ejecución llamando a la función \verb|tud_task()| de manera regular. De lo contrario, no se procesarían los eventos del stack USB y el sensor dejaría de ser detectado como dispositivo USB.
+
+\lstset{basicstyle=\small}
+\begin{lstlisting}[language=c, caption={Estructura de la tarea encargada de la comunicación por USB.}, label={lst:usb_task}]
+void usb_task(void *arg) {
+    while (1) {
+        tud_task();
+
+        if (!msg_in_buffer) {
+            size_t n = xMessageBufferReceive(tx_msg_buffer, ...);
+            ...
+        }
+
+        if (msg_in_buffer) {
+            ...
+            tud_cdc_write(...);
+            ...
+        }
+    }
+}
+\end{lstlisting}
+
+A su vez, la tarea \verb|usb_task()| también es la encargada de recibir los mensajes provenientes desde el host, e interpretarlos como comandos. Esto se logra utilizando la función callback provista por TinyUSB \verb|tud_cdc_rx_cb()|. Cuando se reciben datos, esta función es ejecutada por el stack USB cuando corre \verb|tud_task()|. Cada mensaje recibido se interpreta como comando y pasa por medio de una cola a la tarea \verb|worker_task()|.
+
+\begin{lstlisting}[language=c,caption={Callback para recibir e interpretar comandos recibidos desde el host.}]
+void tud_cdc_rx_cb(uint8_t itf) {
+    uint8_t rx_buf[ACP_CMD_MAX_SIZE + 1];
+
+    uint32_t n = tud_cdc_read(rx_buf, ACP_CMD_MAX_SIZE);
+    if (n == 0)
+        return;
+
+    acp_command_t cmd;
+    bool result = acp_parse_command(&cmd, rx_buf, n);
+    if (result) {
+        xQueueSend(cmd_queue, &cmd, 0);
+    } else {
+        // error...
+    }
+}
+\end{lstlisting}
+
+Por otro lado, la segunda tarea \verb|worker_task()| es responsable de recibir y ejecutar los comandos, y devolver las respuestas a la tarea \verb|usb_task()| para enviarlas al host.
+
+Esto se logra recibiendo los comandos a través de una cola de FreeRTOS. La tarea bloquea hasta recibir un nuevo comando, y luego ejecuta su correspondiente acción según el tipo de comando recibido. Una vez terminado, cada comando arma su mensaje de respuesta, y lo envía a la \verb|usb_task()| mediante un buffer de mensajes. 
+
+La estructura general de la tarea \verb|usb_task()| se muestra a continuación:
+
+\begin{lstlisting}[language=c, caption={Estructura de la tarea procesadora.}]
 void worker_task(void *arg) {
-   acp_command_t cmd;
-   while (1) {
-       xQueueReceive(cmd_queue, &cmd, portMAX_DELAY);
-       switch (cmd.type) {
-           ...
-       }
-   }
+    acp_command_t cmd;
+    while (1) {
+        xQueueReceive(cmd_queue, &cmd, ...);
+        switch (cmd.type) {
+        case CMD_XYZ:
+            ...
+            xMessageBufferSend(tx_msg_buffer, ...);
+            break;
+        }
+        ...
+    }
 }
 \end{lstlisting}
 
 \subsection{Aplicación de Linea de Comandos} \label{sec:aplicacion_CLI}
+
+- cli.py
+    - frontend interactivo
+- serialpal.py
+    - capa de adaptación CLI/USB
+    - provee una interfaz para enviar y recibir mensajes desde/al dispositivo mediante USB/CDC
+    - codifica entrada de usuarios -> comandos
+    - decodificación de respuestas
+- pyserial
+    - libreria de Python que encapsula el acceso al puerto serie.
+
+- scripts/fit_LDR_curves.py
+    - calcula los parámetros K_a y gamma a partir de los resultados de la calibración.
+    - como se menciono en la sec. "Caracterización del LDR"
+    - da como resultado un archivo con los parametros resultantes para cada canal. Luego estos son utilizados para realizar las mediciones
+    - 
 
 \section{Resultados}
 

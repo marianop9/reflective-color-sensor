@@ -1,0 +1,42 @@
+@startuml
+interface "USB/CDC" as usb
+
+package "Host" {
+  [pyserial] as pyserial
+  [CLI] <-> [Serialpal]
+  [Serialpal] <-> pyserial
+}
+
+package "Device" {
+  component "ACP protocol" as acp {
+  }
+
+  frame "USB Task" {
+    component "TinyUSB" as tusb {
+      [rx_fifo] <-> [tud_task]
+      [tud_task] <--> [tx_fifo]
+      
+    }
+    [Message Buffer] -> [tx_fifo]
+    [rx_fifo] --> [RX Callback]
+    
+  }
+
+  frame "Worker Task" {
+    [Command Queue] -> [Action]
+  }
+
+  [Action] --> acp : msg_out
+  [Command Queue] <-- acp : cmd_in
+
+  [RX Callback] --> acp : msg_in
+  [Message Buffer] <-- acp : resp_out
+  
+  
+}
+
+pyserial <--> usb
+usb <--> [tud_task]
+
+
+@enduml
