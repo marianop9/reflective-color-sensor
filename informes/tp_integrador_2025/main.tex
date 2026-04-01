@@ -469,22 +469,95 @@ void worker_task(void *arg) {
 \end{lstlisting}
 
 \subsection{Aplicación de Linea de Comandos} \label{sec:aplicacion_CLI}
+Para facilitar la interacción con el dispositivo y el procesamiento de las mediciones se desarrolló una aplicación de línea de comandos (CLI) en Python. La aplicación se comunica con el dispositivo a través de USB utilizando la librería \textit{pyserial}, que encapsula el acceso al puerto serie. 
+La misma se organiza en tres modilos principales:
+\verb|serialpal.py|, \verb|cli.py|, y \verb|json_exporter.py|. Adicionalmente, se desarrollaron scripts auxiliares para el procesamiento y visualización de datos fuera de línea
 
-- cli.py
-    - frontend interactivo
-- serialpal.py
-    - capa de adaptación CLI/USB
-    - provee una interfaz para enviar y recibir mensajes desde/al dispositivo mediante USB/CDC
-    - codifica entrada de usuarios -> comandos
-    - decodificación de respuestas
-- pyserial
-    - libreria de Python que encapsula el acceso al puerto serie.
+\subsubsection{Módulo \texttt{serialpal.py}}
+Este módulo actúa como capa de adaptación entre la interfaz de usuario y el dispositivo físico,
+encapsulando toda la lógica de comunicación serial. Para acceder al puerto serie del sistema
+operativo, se utilizó la librería \textit{pyserial}, que provee una interfaz uniforme
+independientemente de la plataforma utilizada.\\
 
-- scripts/fit_LDR_curves.py
-    - calcula los parámetros K_a y gamma a partir de los resultados de la calibración.
-    - como se menciono en la sec. "Caracterización del LDR"
-    - da como resultado un archivo con los parametros resultantes para cada canal. Luego estos son utilizados para realizar las mediciones
-    - 
+La clase principal \verb|SerialPal| provee métodos para listar los puertos disponibles del sistema,
+conectarse a uno de ellos, y enviar y recibir mensajes siguiendo el protocolo de comunicación
+descripto en la sección anterior.
+
+El método \verb|send()| construye y envía un comando con el formato \\ \verb|&<cmd>,<arg1>,<arg2>*|, mientras que \verb|receive()| lee la respuesta del dispositivo
+interpretando primero el encabezado para determinar el tipo y la longitud del payload, y luego
+leyendo dicho payload de manera completa.
+Las respuestas recibidas se encapsulan en objetos de la clase \verb|Response|, que almacena el
+tipo de respuesta (\verb|TEXT| o \verb|DATA|), el payload en formato binario, y su longitud en
+bytes. 
+
+El método \verb|decode()| convierte el payload al tipo de dato correspondiente: en el caso
+de respuestas de texto, se decodifica como una cadena ASCII; en el caso de datos binarios, se
+desempaquetan como una tupla de enteros sin signo de 8 o 16 bits, según se indique.
+
+\subsubsection{Módulo \texttt{cli.py}}
+
+Este módulo implementa la interfaz interactiva con el usuario, extendiendo la clase \verb|cmd.Cmd|
+de la biblioteca estándar de Python. Esto permite ofrecer un intérprete de comandos con
+funcionalidades como autocompletado y un sistema de ayuda integrado.
+
+Cada comando disponible en la interfaz se implementa como un método con el prefijo \verb|do_|.
+Los comandos más relevantes son los siguientes:
+
+\begin{itemize}
+    \item \verb|ports|: lista los puertos serie disponibles en el sistema.
+    \item \verb|conn <puerto>|: establece la conexión con el dispositivo en el puerto indicado.
+    \item \verb|ping|: envía un comando de prueba al dispositivo para verificar la comunicación.
+    \item \verb|adc|: solicita al dispositivo una serie de muestras del ADC y calcula su media y
+          desviación estándar.
+    \item \verb|set_led <índice> <rgb>|: configura el color de un LED del dispositivo mediante un
+          código RGB de \qty{24}{bits}.
+    \item \verb|sweep <canal>|: ejecuta el procedimiento de calibración para el canal de color
+          indicado (R, G o B), descripto en la \cref{sec:caracterizacion_LDR}.
+    \item \verb|measure|: realiza una medición de color completa utilizando los parámetros del
+          modelo LDR previamente calculados, y muestra el resultado como código RGB.
+\end{itemize}
+
+El comando \verb|sweep| recorre un conjunto de intensidades con espaciado logarítmico en el rango
+\numrange{0}{255}, configurando el LED correspondiente en cada paso y registrando la respuesta del
+ADC. Durante el barrido se controla automáticamente la saturación del circuito de acondicionamiento,
+ajustando el valor de $R_f$ cuando una muestra se encuentra fuera de la región de funcionamiento
+definida. Al finalizar, las mediciones se exportan a un archivo JSON mediante el módulo
+\verb|json_exporter.py|.
+
+El comando \verb|measure| carga los parámetros $K_a$ y $\gamma$ del archivo \verb|LDR_params|
+\verb|.json| generado durante la calibración, enciende cada canal del LED a su máxima intensidad de manera secuencial, y determina el valor de color para cada canal a partir de la \cref{eq:respuesta_LDR_aprox}. Al finalizar, se muestra el resultado como un código RGB de \qty{24}{bits}, junto con una representación visual del color obtenido en la terminal.
+
+
+\subsubsection{Scripts Auxiliares}
+
+El script \verb|fit_LDR_curves.py| implementa el procedimiento de mínimos cuadrados descripto en
+la \cref{sec:caracterizacion_LDR}, utilizando las librerías \textit{pandas} y \textit{numpy}.
+Para cada canal de color, lee el archivo JSON correspondiente, calcula la conductancia $G$ a partir
+de las muestras del ADC mediante la \cref{eq:conductancia_Vo}, y aplica la \cref{eq:LSQ_formula}
+para obtener los parámetros $K_a$ y $\gamma$ de la \cref{eq:respuesta_LDR_aprox}. Los resultados
+se almacenan en el archivo \verb|LDR_params.json|, que luego es utilizado por la aplicación CLI
+para realizar las mediciones.
+
+Por su parte, el script \verb|plot_LDR_response.py| permite visualizar la respuesta teórica del
+circuito de acondicionamiento para los distintos valores de $R_f$ disponibles, graficando la
+tensión de salida $V_o$ en función de la resistencia del LDR. Esto resulta útil para verificar
+el rango de funcionamiento del circuito antes de realizar mediciones.
+
+% - cli.py
+%     - frontend interactivo
+% - serialpal.py
+%     - capa de adaptación CLI/USB
+%     - provee una interfaz para enviar y recibir mensajes desde/al dispositivo mediante USB/CDC
+%     - codifica entrada de usuarios -> comandos
+%     - decodificación de respuestas
+% - pyserial
+%     - libreria de Python que encapsula el acceso al puerto serie.
+
+% - scripts/fit_LDR_curves.py
+%     - calcula los parámetros K_a y gamma a partir de los resultados de la calibración.
+%     - como se menciono en la sec. "Caracterización del LDR"
+%     - da como resultado un archivo con los parametros resultantes para cada canal. Luego estos son utilizados para realizar las mediciones
+%     - 
 
 \section{Resultados}
 
