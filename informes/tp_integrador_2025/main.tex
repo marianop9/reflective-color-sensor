@@ -107,7 +107,7 @@ El dispositivo en su forma más simple consiste de un LDR que actúa como transd
 % carcasa
 Para poder tomar mediciones es necesario aislar el dispositivo de la luz ambiente, ya que esta interferiría con los iluminantes propios del dispositivo y distorsionaría las mediciones. Por ello, es diseño una carcasa especializada donde los iluminantes y el LDR pueden funcionar sin interferencia de la luz externa. Las vistas frontal e inferior se muestran en la \cref{fig:vistas_carcasa}.
 
-La misma cuenta con dos tres compartimientos internos. El compartimiento inferior se apoya sobre la superficie objetivo y es iluminado por los LEDs; en la vista inferior de la \cref{fig:vistas_carcasa} se observa las ranuras donde van colocados los dos LEDs utilizados. El LDR se coloca en el compartimiento central, que se conecta con el compartimiento inferior mediante una pequeña apertura, lo que permite que la luz reflejada incida directamente sobre la superficie del LDR. Por último, el compartimiento superior se utiliza para las conexiones eléctricas de todos los componentes, y cuenta con una salida al exterior de la carcasa donde estos se conectan al circuito de acondicionamiento y microcontrolador.
+La misma cuenta con dos compartimientos internos. El compartimiento inferior se apoya sobre la superficie objetivo y es iluminado por los LEDs; en la vista inferior de la \cref{fig:vistas_carcasa} se observa las ranuras donde van colocados los dos LEDs utilizados. El LDR se coloca en el compartimiento central, que se conecta con el compartimiento inferior mediante una pequeña apertura, lo que permite que la luz reflejada incida directamente sobre la superficie del LDR. Por último, el compartimiento superior se utiliza para las conexiones eléctricas de todos los componentes, y cuenta con una salida al exterior de la carcasa donde estos se conectan al circuito de acondicionamiento y microcontrolador.
 
 % TODO! foto de carcasa
 
@@ -124,14 +124,14 @@ Como se mencionó anteriormente, el dispositivo está basado en la placa de desa
 % LEDs
 El sensor utiliza LEDs RGB WS2812 como emisores, ya que cuentan con un factor de forma compacto, intensidad regulable, y un protocolo de comunicación sencillo. Este protocolo se basa en una señal cuadrada, donde la longitud de los pulsos altos y bajos definen un 0 lógico o 1 lógico. De esta forma se envía un código RGB de 24 bits que define el color de luz emitido por cada LED.
 
-Pese a la simpleza del protocolo de comunicación, este funciona a una frecuencia relativamente elevada, de alrededor de \qty{800}{\kHz}. Las implementaciones típicas de drivers para estos dispositivos suelen consistir de procedimientos de "bit-banging" altamente optimizados, normalmente escritos directamente en lenguaje ensamblador. Sin embargo, el microcontrolador RP2040 utilizado incluye hardware especializado para desarrollar interfaces de hardware especializados, denominado I/O programable (PIO) \cite{RP2040_datasheet}.
+Pese a la simpleza del protocolo de comunicación, este funciona a una frecuencia relativamente elevada, de alrededor de \qty{800}{\kHz}. Las implementaciones típicas de drivers para estos dispositivos suelen consistir de procedimientos de "bit-banging" \ altamente optimizados, normalmente escritos directamente en lenguaje ensamblador. Sin embargo, el microcontrolador RP2040 utilizado incluye hardware especializado para desarrollar interfaces de hardware especializados, denominado I/O programable (PIO) \cite{RP2040_datasheet}.
 
 Las capacidades PIO del RP2040 permiten crear sub-programas que no requieren tiempo de procesador y pueden controlar los puertos GPIO del microcontrolador de manera precisa y confiable, lo que lo hace ideal para la implementación de un driver para los LEDs WS2812.
 
 % LDR
 Durante el desarrollo se probaron varios LDR de sulfuro de cadmio (CdS) en distintas condiciones de iluminación y se comprobó que todos tienen respuestas distintas ante los mismos estímulos de luz. Sin embargo, se pudo establecer que toman valores de resistencia en el rango de \qtyrange{1}{1000}{\kohm}. Además, tal como lo indica la hoja de datos del LDR GL5528 \cite{LDR_datasheet} utilizada como referencia, y la \cref{fig:LDR_respuesta_espectral}, un LDR típico tiene distintas sensibilidades según la longitud de onda de la luz incidente.
 
-Por estos motivos, se decidió desarrollar un procedimiento de calibración, que se debe realizar antes de tomar mediciones. Esto se describe      a mencionar de los LDR es que su respuesta no es lineal, sino que su resistencia disminuye exponencialmente con la luminancia, es decir, con la cantidad de luz que incide sobre la superficie sensible del LDR. La respuesta del LDR se suele aproximar con la \cref{eq:respuesta_LDR_R}.
+Por estos motivos, se decidió desarrollar un procedimiento de calibración, que se debe realizar antes de tomar mediciones. Esto se describe a mencionar de los LDR es que su respuesta no es lineal, sino que su resistencia disminuye exponencialmente con la luminancia, es decir, con la cantidad de luz que incide sobre la superficie sensible del LDR. La respuesta del LDR se suele aproximar con la \cref{eq:respuesta_LDR_R}.
 
 \begin{equation} \label{eq:respuesta_LDR_R}
     R = K_a E^{-\gamma}
@@ -158,7 +158,7 @@ Por estos motivos, se decidió desarrollar un procedimiento de calibración, que
     \label{fig:circ_acond}
 \end{figure}
 
-Un LDR disminuye su resistencia conforme aumenta la cantidad de luz que incide sobre su superficie sensible, es decir, la iluminancia. Para poder medir estos cambios de resistencia y poder determinar cuanta luz se refleja desde la superficie objetivo al LDR, se construyó el circuito de la \cref{fig:circ_acond}. Este consiste de un amplificador inversor con un tensión de offset fija en su terminal no inversor.
+Un LDR disminuye su resistencia conforme aumenta la cantidad de luz que incide sobre su superficie sensible, es decir, la iluminancia. Para poder medir estos cambios de resistencia y poder determinar cuanta luz se refleja desde la superficie objetivo al LDR, se construyó el circuito de la \cref{fig:circ_acond}. Este consiste de un amplificador inversor con una tensión de offset fija en su terminal no inversor.
 
 La tensión $V_o$ a la salida del amplificador operacional de la \cref{fig:circ_acond} se puede expresar como:
 
@@ -214,7 +214,7 @@ Como se mencionó previamente, y en base a lo observado en la \cref{fig:LDR_resp
 
 Además, debido a que no se cuentan con los elementos necesarios para medir la cantidad de luz que incide sobre la superficie sensible del LDR, es decir, la iluminancia $E$, para este proceso de caracterización se aproximó la iluminancia $E$ como la intensidad $c$ configurada para los LEDs del dispositivo.
 
-La intensidad $c$ de cada LED del dispositivo se puede configurar mediante un código RGB de \qty{24}{bits}, utilizando \qty{8}{bits} para cada canal. Esto significada que cada LED se puede configurar para estar apagado, o en uno de 255 niveles de intensidad.
+La intensidad $c$ de cada LED del dispositivo se puede configurar mediante un código RGB de \qty{24}{bits}, utilizando \qty{8}{bits} para cada canal. Esto significa que cada LED se puede configurar para estar apagado, o en uno de 255 niveles de intensidad.
 
 Reemplazando la aproximación $E \approx c$ en la \cref{eq:respuesta_LDR_G}, se obtiene:
 
