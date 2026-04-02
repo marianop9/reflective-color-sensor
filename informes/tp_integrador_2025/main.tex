@@ -24,7 +24,7 @@
 \renewcommand\lstlistingname{Listado}
 
 \begin{document}
-\renewcommand\refname {}
+\renewcommand\refname{}
 \renewcommand\headrulewidth{0pt} % no line between document and header
 \fancyhead{} % clear header
 \fancyfoot{} % clear footer
@@ -74,7 +74,7 @@ El principio de funcionamiento consiste en colocar el dispositivo sobre la super
 
 Debido a la baja trazabilidad de los LDR en general y su amplio rango de respuesta (generalmente desde unos cuantos kilo-ohmios hasta el orden de los mega-ohmios), que además varía según la longitud de onda de la luz incidente, se implementó un procedimiento para caracterizar la respuesta del LDR. El objetivo es determinar la respuesta del LDR a las distintas longitudes de onda para mejorar las mediciones obtenidas.
 
-Para tomar las mediciones se desarrolló un circuito de acondicionamiento para el LDR y un microcontrolador Raspberry Pi Pico. El microcontrolador a su vez implementa un protocolo de comunicación simple mediante USB (puerto serie virtual), que le permite funcionar como dispositivo USB e intercambiar mensajes con una PC u otro host USB.
+Para tomar las mediciones se desarrolló un circuito de acondicionamiento para el LDR y un microcontrolador Raspberry Pi Pico. El microcontrolador a su vez implementa un protocolo de comunicación simple mediante USB (puerto serie virtual), que le permite funcionar como dispositivo USB e intercambiar mensajes con una PC u otro host USB\@.
 
 Por último, se desarrolló una aplicación CLI (interfaz de línea de comandos), que permite la comunicación con el dispositivo a través de USB. La principal motivación fue para facilitar el análisis de datos y la caracterización del LDR utilizando lenguajes de programación de alto nivel, tales como Python.
 
@@ -93,7 +93,7 @@ El objetivo de este trabajo consiste en desarrollar un dispositivo de bajo costo
 % El procedimiento se repite de manera secuencial para los tres componentes de color (rojo, verde y azul), permitiendo obtener un conjunto de mediciones que representan la respuesta espectral de la superficie. Con estos valores, el sistema realiza el procesamiento y determinación del color resultante, el cual se visualiza a través de una página web. Dicha página también permite al usuario ejecutar mediciones de forma remota, calibrar el dispositivo y visualizar los resultados de mediciones previas. Todo esto se logra a través de un servidor web embebido dentro del microcontrolador.
 
 \section{Desarrollo}
-A continuación se describen en detalle los distintos aspectos del dispositivo, incluyendo el hardware utilizado y el circuito de acondicionamiento del LDR, asi como la implementación del firmware del microcontrolador y la aplicación CLI.
+A continuación se describen en detalle los distintos aspectos del dispositivo, incluyendo el hardware utilizado y el circuito de acondicionamiento del LDR, asi como la implementación del firmware del microcontrolador y la aplicación CLI\@.
 
 \subsection{Descripción del Dispositivo}
 % - componentes: 
@@ -119,17 +119,17 @@ La misma cuenta con dos compartimientos internos. El compartimiento inferior se 
 \end{figure}
 
 % micro
-Como se mencionó anteriormente, el dispositivo está basado en la placa de desarrollo Raspberry Pi Pico, que utiliza el microcontrolador RP2040 \cite{RP2040_datasheet}. Este cuenta con dos núcleos ARM Cortex-M0+, ADC de 12 bits, e implementa la capa física del protocolo USB, que permite su funcionamiento como dispositivo USB. El microcontrolador cuenta con más que suficiente poder de procesamiento para esta aplicación, pero su elección se basa principalmente en su disponibilidad y bajo costo, la facilidad de programación, y la capacidad de implementar interfaces de hardware específicos, que se verá a continuación.
+Como se mencionó anteriormente, el dispositivo está basado en la placa de desarrollo Raspberry Pi Pico, que utiliza el microcontrolador RP2040~\cite{RP2040_datasheet}. Este cuenta con dos núcleos ARM Cortex-M0+, ADC de 12 bits, e implementa la capa física del protocolo USB, que permite su funcionamiento como dispositivo USB. El microcontrolador cuenta con más que suficiente poder de procesamiento para esta aplicación, pero su elección se basa principalmente en su disponibilidad y bajo costo, la facilidad de programación, y la capacidad de implementar interfaces de hardware específicos, que se verá a continuación.
 
 % LEDs
 El sensor utiliza LEDs RGB WS2812 como emisores, ya que cuentan con un factor de forma compacto, intensidad regulable, y un protocolo de comunicación sencillo. Este protocolo se basa en una señal cuadrada, donde la longitud de los pulsos altos y bajos definen un 0 lógico o 1 lógico. De esta forma se envía un código RGB de 24 bits que define el color de luz emitido por cada LED.
 
-Pese a la simpleza del protocolo de comunicación, este funciona a una frecuencia relativamente elevada, de alrededor de \qty{800}{\kHz}. Las implementaciones típicas de drivers para estos dispositivos suelen consistir de procedimientos de "bit-banging" \ altamente optimizados, normalmente escritos directamente en lenguaje ensamblador. Sin embargo, el microcontrolador RP2040 utilizado incluye hardware especializado para desarrollar interfaces de hardware especializados, denominado I/O programable (PIO) \cite{RP2040_datasheet}.
+Pese a la simpleza del protocolo de comunicación, este funciona a una frecuencia relativamente elevada, de alrededor de \qty{800}{\kHz}. Las implementaciones típicas de drivers para estos dispositivos suelen consistir de procedimientos de "bit-banging" altamente optimizados, normalmente escritos directamente en lenguaje ensamblador. Sin embargo, el microcontrolador RP2040 utilizado incluye hardware especializado para desarrollar interfaces de hardware especializados, denominado I/O programable (PIO)~\cite{RP2040_datasheet}.
 
 Las capacidades PIO del RP2040 permiten crear sub-programas que no requieren tiempo de procesador y pueden controlar los puertos GPIO del microcontrolador de manera precisa y confiable, lo que lo hace ideal para la implementación de un driver para los LEDs WS2812.
 
 % LDR
-Durante el desarrollo se probaron varios LDR de sulfuro de cadmio (CdS) en distintas condiciones de iluminación y se comprobó que todos tienen respuestas distintas ante los mismos estímulos de luz. Sin embargo, se pudo establecer que toman valores de resistencia en el rango de \qtyrange{1}{1000}{\kohm}. Además, tal como lo indica la hoja de datos del LDR GL5528 \cite{LDR_datasheet} utilizada como referencia, y la \cref{fig:LDR_respuesta_espectral}, un LDR típico tiene distintas sensibilidades según la longitud de onda de la luz incidente.
+Durante el desarrollo se probaron varios LDR de sulfuro de cadmio (CdS) en distintas condiciones de iluminación y se comprobó que todos tienen respuestas distintas ante los mismos estímulos de luz. Sin embargo, se pudo establecer que toman valores de resistencia en el rango de \qtyrange{1}{1000}{\kohm}. Además, tal como lo indica la hoja de datos del LDR GL5528~\cite{LDR_datasheet} utilizada como referencia, y la \cref{fig:LDR_respuesta_espectral}, un LDR típico tiene distintas sensibilidades según la longitud de onda de la luz incidente.
 
 Por estos motivos, se decidió desarrollar un procedimiento de calibración, que se debe realizar antes de tomar mediciones. Esto se describe a mencionar de los LDR es que su respuesta no es lineal, sino que su resistencia disminuye exponencialmente con la luminancia, es decir, con la cantidad de luz que incide sobre la superficie sensible del LDR. La respuesta del LDR se suele aproximar con la \cref{eq:respuesta_LDR_R}.
 
@@ -144,7 +144,7 @@ Por estos motivos, se decidió desarrollar un procedimiento de calibración, que
     \label{fig:LDR_respuesta_espectral}
 \end{figure}
 
-\subsection{Circuito de Acondicionamiento} \label{sec:circ_acond}
+\subsection{Circuito de Acondicionamiento}\label{sec:circ_acond}
 
 % - op amp
 % - cd4066
@@ -181,9 +181,9 @@ Por este motivo, el circuito de adaptación utiliza tres valores de resistencia 
     \label{fig:respuesta_circuito}
 \end{figure}
 
-Se utilizó el switch bilateral cuádruple CD4066 \cite{cd4066_datasheet} para permitir el control programable de la resistencia $R_f$. Este circuito cuenta con cuatro canales independientes y está ampliamente disponible.
+Se utilizó el switch bilateral cuádruple CD4066~\cite{cd4066_datasheet} para permitir el control programable de la resistencia $R_f$. Este circuito cuenta con cuatro canales independientes y está ampliamente disponible.
 
-\subsection{Caracterización del LDR} \label{sec:caracterizacion_LDR}
+\subsection{Caracterización del LDR}\label{sec:caracterizacion_LDR}
 
 Para poder tomar mediciones confiables y repetibles utilizando un LDR, resulta necesario un proceso de calibración, ya que no todos se comportan de la misma forma. Además, de la \cref{fig:LDR_respuesta_espectral} se puede concluir que cada LDR se exhibirá respuestas distintas según la longitud de onda de la luz incidente.
 
@@ -281,7 +281,7 @@ Considerando $N$ muestras distintas, se arma un sistema de ecuaciones y se expre
 El valor de la matriz de las variables desconocidas se puede obtener a partir de la \cref{eq:LSQ_formula}, donde $Y$ es la matriz de las conductancias, $A$ es la matriz de los coeficientes ($1$ y $\ln c_i$), y $x$ la matriz de las variables que se quieren calcular.
 
 \begin{equation} \label{eq:LSQ_formula}
-    x = (A^T A)^{-1} A^T Y
+    x = {(A^T A)}^{-1} A^T Y
 \end{equation}
 
 La aplicación de escritorio que se utilizó para interactuar con el dispositivo cuenta con funcionalidad para exportar las muestras recolectadas en formato JSON, lo cual se detalla a fondo en la \cref{sec:aplicacion_CLI}. Por lo tanto, se utilizaron las librerías de Python \textit{pandas} y \textit{numpy} para analizar los datos recolectados. 
@@ -339,9 +339,9 @@ Además, al igual que durante el proceso de calibración, se evita tomar resulta
 
 El microcontrolador RP2040 es el encargado de controlar los periféricos y coordinar todas las operaciones del dispositivo, y actúa como dispositivo USB que permite al dispositivo conectarse a una PC y comunicarse mediante un protocolo de comunicación por puerto serie simple.
 
-La implementación del firmware en el microcontrolador se realizó en el lenguaje de programación C, utilizando la capa de abstracción de hardware \textit{Pico-SDK} \cite{pico_sdk_doc} provista por el fabricante.
+La implementación del firmware en el microcontrolador se realizó en el lenguaje de programación C, utilizando la capa de abstracción de hardware \textit{Pico-SDK}~\cite{pico_sdk_doc} provista por el fabricante.
 
-Para funcionar como dispositivo USB, se utilizó la librería \textit{TinyUSB} \cite{tinyusb_doc}, la cuál ofrece una implementación del stack USB para dispositivos embebidos. 
+Para funcionar como dispositivo USB, se utilizó la librería \textit{TinyUSB}~\cite{tinyusb_doc}, la cuál ofrece una implementación del stack USB para dispositivos embebidos. 
 
 Además, se utilizó el sistema operativo de tiempo real \textit{FreeRTOS}. La principal motivación es que este brinda herramientas para logar la sincronización de las distintas tareas que lleva a cabo el dispositivo, lo cuál es útil debido a la naturaleza asíncrona de la comunicación serial.
 
@@ -387,7 +387,7 @@ Pese a que el dispositivo no supone una carga importante para el procesador del 
 
 El ADC se configuró con una frecuencia de muestreo de \qty{500}{Hz}, ya que el transductor LDR se caracteriza por tener una respuesta lenta. Sin embargo, se probaron distintos valores de frecuencia y se obtuvieron resultados similares. 
 
-Al iniciar el dispositivo, se inicializa el ADC por código y se conecta a un canal DMA libre. El DMA se configura para leer desde el registro de muestras del ADC (\verb|adc_hw->fifo|) \cite{RP2040_datasheet}, y escribir cada muestra en un arreglo en memoria. El tamaño del arreglo utilizado fue de 40 muestras.
+Al iniciar el dispositivo, se inicializa el ADC por código y se conecta a un canal DMA libre. El DMA se configura para leer desde el registro de muestras del ADC (\verb|adc_hw->fifo|)~\cite{RP2040_datasheet}, y escribir cada muestra en un arreglo en memoria. El tamaño del arreglo utilizado fue de 40 muestras.
 
 Debido a que la frecuencia de DMA es mucho mayor que la frecuencia de muestreo del ADC, se conecta la señal de solicitud de datos (\verb|DREQ|) del ADC al canal DMA, de manera que el DMA solo realice una transferencia cada vez que el ADC toma una nueva muestra.
 
@@ -397,7 +397,7 @@ Finalmente, dado que la toma de muestras se realiza de manera asíncrona mediant
 
 Las tareas que realiza el microcontrolador se pueden separar en dos partes clave: la comunicación USB por medio de la cual se reciben los comandos que debe ejecutar, y la ejecución de dichos comandos. Debido a que cada una tiene lógica especifica, ya sea la decodificación de comandos y codificación de respuestas, la lógica propia del stack USB, o la lógica individual que requiere la ejecución de cada comando, se definieron dos tareas: \verb|usb_task()| y \verb|worker_task()|.
 
-La estructura de la tarea \verb|usb_task()| se muestra en el Listado \ref{lst:usb_task}. La misma debe cumplir tres tareas especificas:
+La estructura de la tarea \verb|usb_task()| se muestra en el Listado~\ref{lst:usb_task}. La misma debe cumplir tres tareas especificas:
 \begin{enumerate}
     \item Ejecutar el stack USB mediante la función \verb|tud_task()| de TinyUSB.
     \item Recibir mensajes de respuesta a enviar por USB hacia el host.
@@ -561,8 +561,7 @@ el rango de funcionamiento del circuito antes de realizar mediciones.
 
 \section{Resultados}
 
-\printbibliography
-
+\printbibliography{}
 \end{document}
 
 
