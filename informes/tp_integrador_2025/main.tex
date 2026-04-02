@@ -35,19 +35,19 @@
     \mbox{\makecell[cl]{\includegraphics[height=20pt]{UTN_logo.jpg}}}
     \makecell[cl]{
         Universidad Tecnológica Nacional \\
-        10 Noviembre Año 2025 %fecha 
+        8 Abril Año 2026
     }}
 
 \fancyhead[R]{\footnotesize
     \makecell[cr]{
-        Técnicas Digitales III \\
-        Daniele, Fernando %catedra y profesores
+        Técnicas Digitales III, Medidas Electrónicas II \\
+        Ing. Daniele, Fernando --- Ing. Bossio, Jorge
     }}
 
 \fancyfoot[L]{\thepage}
 
 \vspace{\fill}
-{\huge \noindent \textbf{Desarrollo de un Sensor de Colores por Reflexión} \par} % title 
+{\huge \noindent \raggedright \textbf{Desarrollo de un Sensor de Colores por Reflexión} \par} % title 
 
 \vspace{1.5cm}
 \noindent
@@ -74,26 +74,22 @@ El principio de funcionamiento consiste en colocar el dispositivo sobre la super
 
 Debido a la baja trazabilidad de los LDR en general y su amplio rango de respuesta (generalmente desde unos cuantos kilo-ohmios hasta el orden de los mega-ohmios), que además varía según la longitud de onda de la luz incidente, se implementó un procedimiento para caracterizar la respuesta del LDR. El objetivo es determinar la respuesta del LDR a las distintas longitudes de onda para mejorar las mediciones obtenidas.
 
-Para tomar las mediciones se desarrolló un circuito de acondicionamiento para el LDR y un microcontrolador Raspberry Pi Pico. El microcontrolador a su vez implementa un protocolo de comunicación simple mediante USB (puerto serie virtual), que le permite funcionar como dispositivo USB e intercambiar mensajes con una PC u otro host USB\@.
+Para tomar las mediciones se desarrolló un circuito de acondicionamiento para el LDR y la placa de desarrollo Raspberry Pi Pico, que utiliza el microcontrolador RP2040. El microcontrolador a su vez implementa un protocolo de comunicación simple mediante USB (utilizando la clase de comunicación puerto serie virtual), que le permite funcionar como dispositivo USB e intercambiar mensajes con una PC u otro host USB\@.
 
-Por último, se desarrolló una aplicación CLI (interfaz de línea de comandos), que permite la comunicación con el dispositivo a través de USB. La principal motivación fue para facilitar el análisis de datos y la caracterización del LDR utilizando lenguajes de programación de alto nivel, tales como Python.
+Por último, se desarrolló una aplicación CLI (interfaz de línea de comandos), que permite la comunicación con el dispositivo a través de USB\@. La principal motivación fue para facilitar el análisis de datos y la caracterización del LDR utilizando lenguajes de programación de alto nivel, tales como Python.
 
 \subsection{Antecedentes}
 
-Las opciones comerciales de este tipo de dispositivos suelen medir color al incidir sobre la superficie objetivo, rayos provenientes de una fuente de luz blanca. El color se determina mediante un arreglo de foto-detectores, que generalmente consisten de foto-diodos con filtros RGB; cada foto-diodo detecta la intensidad de luz reflejada para una longitud de onda especifica, y se determina el color de la superficie en base a las intensidades relativas de luz captadas por cada uno. Este trabajo busca explorar la posibilidad de cumplir la misma función utilizando componentes más fácilmente accesibles y económicos.
+Las opciones comerciales de este tipo de dispositivos suelen medir color al incidir sobre la superficie objetivo, rayos provenientes de una fuente de luz blanca. El color se determina mediante un arreglo de foto-detectores, que generalmente consisten de foto-diodos con filtros RGB; cada foto-diodo detecta la intensidad de luz reflejada para una longitud de onda especifica, y se determina el color de la superficie en base a las intensidades relativas de luz captadas por cada uno. Este trabajo busca explorar la posibilidad de cumplir la misma función utilizando componentes más fácilmente accesibles y económicos, compensando las desventajas evidentes del LDR mediante una secuencia de calibración que permita obtener resultados repetibles.
 
 \subsection{Objetivos}
 
 El objetivo de este trabajo consiste en desarrollar un dispositivo de bajo costo que permita determinar el color de un objeto con un grado de precisión aceptable mediante la reflexión de luz sobre su superficie. A su vez, se implementará un procedimiento de calibración para conocer la respuesta del LDR utilizado en el dispositivo. Para facilitar la operación y el procesamiento de las mediciones, se desarrollará además una aplicación de escritorio que permita interactuar con el dispositivo y visualizar los resultados obtenidos.
 
-% TODO! Revisar y ver si sacar:
-% \subsection{Funcionamiento}
-% Como se observa en la \cref{fig:diagrama_inicial.png}, el sistema propuesto se basa en la implementación de una Raspberry Pi Pico W, encargada del procesamiento central. El proceso inicia con todos los LED apagados; transcurrido un tiempo determinado, se activa el LED rojo, que ilumina la superficie objetivo. Mediante un LDR se detecta la reflexión difusa de dicha superficie, y una fuente de corriente ajustable convierte la resistencia del sensor LDR en una señal de tensión. Esta señal analógica se pasa por un filtro pasa-bajos, con el fin de atenuar el ruido de alta frecuencia. Una vez filtrada, la señal es muestreada por el ADC de la Pico W, haciendo uso del DMA y se realiza un filtrado digital adicional para optimizar la adquisición de datos.
-
-% El procedimiento se repite de manera secuencial para los tres componentes de color (rojo, verde y azul), permitiendo obtener un conjunto de mediciones que representan la respuesta espectral de la superficie. Con estos valores, el sistema realiza el procesamiento y determinación del color resultante, el cual se visualiza a través de una página web. Dicha página también permite al usuario ejecutar mediciones de forma remota, calibrar el dispositivo y visualizar los resultados de mediciones previas. Todo esto se logra a través de un servidor web embebido dentro del microcontrolador.
-
 \section{Desarrollo}
 A continuación se describen en detalle los distintos aspectos del dispositivo, incluyendo el hardware utilizado y el circuito de acondicionamiento del LDR, asi como la implementación del firmware del microcontrolador y la aplicación CLI\@.
+
+Todo el contenido desarrollado en el presente informe, incluyendo el código de fuente del microcontrolador, aplicación de escritorio y esquemáticos y simulaciones de los circuitos se pueden encontrar en el repositorio de GitHub \href{https://github.com/marianop9/reflective-color-sensor}{github.com/marianop9/reflective-color-sensor}.
 
 \subsection{Descripción del Dispositivo}
 % - componentes: 
@@ -102,10 +98,10 @@ A continuación se describen en detalle los distintos aspectos del dispositivo, 
 %     - LED ✔️
 %     - LDR ✔️
 
-El dispositivo en su forma más simple consiste de un LDR que actúa como transductor, un iluminante que hace incidir luz de color rojo, verde y azul sobre la superficie objetivo. Dado que el LDR varía su resistencia en base a la cantidad de luz que incide sobre su superficie, es necesario convertir este cambio de resistencia en una tensión que pueda ser muestreada por un conversor analógico-digital (ADC). Para ello se diseño un circuito de adaptación, descrito en detalle en el \cref{sec:circ_acond}, que convierte la resistencia del LDR en tensión, y es capaz de funcionar sobre un amplio rango de valores de resistencia.
+El dispositivo en su forma más simple consiste de un LDR que actúa como transductor, y un iluminante que hace incidir luz de color rojo, verde y azul sobre la superficie objetivo. Dado que el LDR varía su resistencia en base a la cantidad de luz que incide sobre su superficie, es necesario convertir este cambio de resistencia en una tensión que pueda ser muestreada por un conversor analógico-digital (ADC). Para ello se diseño un circuito de adaptación, descrito en detalle en el \cref{sec:circ_acond}, que convierte la resistencia del LDR en tensión, y es capaz de funcionar sobre un amplio rango de valores de resistencia.
 
 % carcasa
-Para poder tomar mediciones es necesario aislar el dispositivo de la luz ambiente, ya que esta interferiría con los iluminantes propios del dispositivo y distorsionaría las mediciones. Por ello, es diseño una carcasa especializada donde los iluminantes y el LDR pueden funcionar sin interferencia de la luz externa. Las vistas frontal e inferior se muestran en la \cref{fig:vistas_carcasa}.
+Para poder tomar mediciones es necesario aislar el dispositivo de la luz ambiente, ya que esta interferiría con los iluminantes propios del dispositivo y distorsionaría las mediciones. Por ello, se diseñó una carcasa especializada donde los iluminantes y el LDR pueden funcionar sin interferencia de la luz externa. Las vistas frontal e inferior se muestran en la \cref{fig:vistas_carcasa}.
 
 La misma cuenta con dos compartimientos internos. El compartimiento inferior se apoya sobre la superficie objetivo y es iluminado por los LEDs; en la vista inferior de la \cref{fig:vistas_carcasa} se observa las ranuras donde van colocados los dos LEDs utilizados. El LDR se coloca en el compartimiento central, que se conecta con el compartimiento inferior mediante una pequeña apertura, lo que permite que la luz reflejada incida directamente sobre la superficie del LDR. Por último, el compartimiento superior se utiliza para las conexiones eléctricas de todos los componentes, y cuenta con una salida al exterior de la carcasa donde estos se conectan al circuito de acondicionamiento y microcontrolador.
 
@@ -119,19 +115,19 @@ La misma cuenta con dos compartimientos internos. El compartimiento inferior se 
 \end{figure}
 
 % micro
-Como se mencionó anteriormente, el dispositivo está basado en la placa de desarrollo Raspberry Pi Pico, que utiliza el microcontrolador RP2040~\cite{RP2040_datasheet}. Este cuenta con dos núcleos ARM Cortex-M0+, ADC de 12 bits, e implementa la capa física del protocolo USB, que permite su funcionamiento como dispositivo USB. El microcontrolador cuenta con más que suficiente poder de procesamiento para esta aplicación, pero su elección se basa principalmente en su disponibilidad y bajo costo, la facilidad de programación, y la capacidad de implementar interfaces de hardware específicos, que se verá a continuación.
+Como se mencionó anteriormente, el dispositivo está basado en la placa de desarrollo Raspberry Pi Pico, que utiliza el microcontrolador RP2040~\cite{RP2040_datasheet}. Este cuenta con dos núcleos ARM Cortex-M0+, ADC de 12 bits, e implementa la capa física del protocolo USB, que permite su funcionamiento como dispositivo USB. El microcontrolador cuenta con más que suficiente poder de procesamiento para esta aplicación, pero su elección se basa principalmente en su disponibilidad y bajo costo, la facilidad de programación, y la capacidad de implementar interfaces de hardware específicos, cuya utilidad se discute a continuación.
 
 % LEDs
 El sensor utiliza LEDs RGB WS2812 como emisores, ya que cuentan con un factor de forma compacto, intensidad regulable, y un protocolo de comunicación sencillo. Este protocolo se basa en una señal cuadrada, donde la longitud de los pulsos altos y bajos definen un 0 lógico o 1 lógico. De esta forma se envía un código RGB de 24 bits que define el color de luz emitido por cada LED.
 
-Pese a la simpleza del protocolo de comunicación, este funciona a una frecuencia relativamente elevada, de alrededor de \qty{800}{\kHz}. Las implementaciones típicas de drivers para estos dispositivos suelen consistir de procedimientos de "bit-banging" altamente optimizados, normalmente escritos directamente en lenguaje ensamblador. Sin embargo, el microcontrolador RP2040 utilizado incluye hardware especializado para desarrollar interfaces de hardware especializados, denominado I/O programable (PIO)~\cite{RP2040_datasheet}.
+Pese a la simpleza del protocolo de comunicación, este funciona a una frecuencia elevada, de alrededor de \qty{800}{\kHz}. Las implementaciones típicas de drivers para estos dispositivos suelen consistir de procedimientos de `bit-banging' altamente optimizados, normalmente escritos directamente en lenguaje ensamblador. Sin embargo, el microcontrolador RP2040 incluye hardware especializado para desarrollar interfaces de hardware especializados, denominado I/O programable (PIO)~\cite{RP2040_datasheet}.
 
 Las capacidades PIO del RP2040 permiten crear sub-programas que no requieren tiempo de procesador y pueden controlar los puertos GPIO del microcontrolador de manera precisa y confiable, lo que lo hace ideal para la implementación de un driver para los LEDs WS2812.
 
 % LDR
 Durante el desarrollo se probaron varios LDR de sulfuro de cadmio (CdS) en distintas condiciones de iluminación y se comprobó que todos tienen respuestas distintas ante los mismos estímulos de luz. Sin embargo, se pudo establecer que toman valores de resistencia en el rango de \qtyrange{1}{1000}{\kohm}. Además, tal como lo indica la hoja de datos del LDR GL5528~\cite{LDR_datasheet} utilizada como referencia, y la \cref{fig:LDR_respuesta_espectral}, un LDR típico tiene distintas sensibilidades según la longitud de onda de la luz incidente.
 
-Por estos motivos, se decidió desarrollar un procedimiento de calibración, que se debe realizar antes de tomar mediciones. Esto se describe a mencionar de los LDR es que su respuesta no es lineal, sino que su resistencia disminuye exponencialmente con la luminancia, es decir, con la cantidad de luz que incide sobre la superficie sensible del LDR. La respuesta del LDR se suele aproximar con la \cref{eq:respuesta_LDR_R}.
+Por estos motivos, se decidió desarrollar un procedimiento de calibración, que se debe realizar antes de tomar mediciones. Otros aspecto a mencionar de los LDR es que su respuesta no es lineal, sino que su resistencia disminuye exponencialmente con la luminancia, es decir, con la cantidad de luz que incide sobre la superficie sensible del LDR. La respuesta típica del LDR puede aproximar con la \cref{eq:respuesta_LDR_R}.
 
 \begin{equation} \label{eq:respuesta_LDR_R}
     R = K_a E^{-\gamma}
@@ -170,7 +166,7 @@ La tensión $V_o$ a la salida del amplificador operacional de la \cref{fig:circ_
 
 La tensión de referencia $V_+$ se eligió de manera tal que coincida con la tensión de referencia del ADC, que en el caso del RP2040 es de \qty{3.3}{\V}\cite{RP2040_datasheet}. De esta forma, se protege al ADC ya que la tensión de salida del circuito de acondicionamiento nunca superará este valor, y a la vez, permite a todo el dispositivo funcionar con una única fuente de alimentación de \qty{5}{\V}.
 
-A su vez, debido al amplio rango de valores de resistencia que puede tomar el LDR, se utilizaron distintos valores de resistencia $R_f$ que permiten al dispositivo ajustar la ganancia del circuito de acondicionamiento. De lo contrario, utilizando una resistencia $R_f$ fija, el circuito solo funcionaría dentro de un rango limitado de la respuesta del LDR, y quedaría saturado para valores de resistencia fuera de este rango.
+Además, debido al amplio rango de valores de resistencia que puede tomar el LDR, se utilizaron distintos valores de resistencia $R_f$ que permiten ajustar la ganancia del circuito de acondicionamiento. De lo contrario, utilizando una resistencia $R_f$ fija, el circuito solo funcionaría dentro de un rango limitado de la respuesta del LDR, y quedaría saturado para valores de resistencia fuera de este rango.
 
 Por este motivo, el circuito de adaptación utiliza tres valores de resistencia $R_f$ discretos, \qtylist{1;10;100}{\kohm}, que aseguran que la respuesta del circuito no se sature en el rango de funcionamiento del LDR previamente establecido (\qtyrange{1}{1000}{\kohm}). La \cref{fig:respuesta_circuito} muestra la respuesta del circuito para los distintos valores de resistencia $R_f$.
 
@@ -224,7 +220,7 @@ Reemplazando la aproximación $E \approx c$ en la \cref{eq:respuesta_LDR_G}, se 
 
 Para la secuencia de barrido, se eligieron valores de intensidad desde \numrange{0}{255} con espaciado logarítmico. Se realizaron pruebas utilizando 30 y 40 valores, y se obtuvieron resultados similares. Para cada paso del barrido se registró la intensidad configurada para los LED, la tensión muestreada por el ADC \qty{400}{\ms} luego de ser configurado el valor de intensidad, y el valor de la resistencia $R_f$.
 
-Además, se definió una región de funcionamiento donde el dispositivo no se considera saturado. Los límites de esta región se eligieron en base a un análisis de la tensión muestreada en el ADC de \qty{12}{bits} del RP2040. Se encontró que para muestras del ADC con un código por debajo de 850, no se registraban cambios al variar la intensidad de los LED. Lo mismo ocurrió para muestras con códigos por encima de 3800. Por lo tanto, cuando una muestra se encuentra fuera de este rango, se ajusta la resistencia $R_f$ para cambiar la ganancia del circuito, aumentando o reduciendo la tensión de salida según sea necesario, y se repite la medición.
+Además, se definió una región de funcionamiento donde el dispositivo no se considera saturado. Los límites de esta región se eligieron en base a un análisis de la tensión muestreada en el ADC de \qty{12}{bits} del RP2040. Se encontró que para muestras del ADC con códigos por debajo de 850, no se registraban cambios al variar la intensidad de los LED. Lo mismo ocurrió para muestras con códigos por encima de 3800. Por lo tanto, cuando una muestra se encuentra fuera de este rango, se ajusta la resistencia $R_f$ para cambiar la ganancia del circuito, aumentando o reduciendo la tensión de salida según sea necesario, y se repite la medición.
 
 El barrido siempre comienza utilizando el valor de resistencia más grande, $R_f=\qty{100}{\kohm}$. Esto se debe a que para intensidades de luz bajas, la conductancia del LDR es muy pequeña, por lo tanto, según la \cref{eq:respuesta_LDR_G} se necesita una resistencia $R_f$ grande para obtener un valor de tensión que se encuentre dentro del rango de funcionamiento del sensor.
 
@@ -235,7 +231,7 @@ El barrido siempre comienza utilizando el valor de resistencia más grande, $R_f
     \label{fig:ADC_intensidad}
 \end{figure}
 
-En la \cref{fig:ADC_intensidad} se observa las muestras obtenidas para un barrido del canal rojo. Las discontinuidades corresponden a los cambios de la resistencia $R_f$. Se observa además que las muestras se encuentran siempre dentro de la región de funcionamiento definida anteriormente.
+En la \cref{fig:ADC_intensidad} se observa las muestras obtenidas para un barrido del canal rojo. Las discontinuidades corresponden a los cambios de la resistencia $R_f$. Se observa además que las muestras se encuentran siempre dentro de la región de funcionamiento definida anteriormente (850 a 3800 cuentas del ADC).
 
 \begin{figure}[htbp]
     \centering
@@ -308,7 +304,7 @@ En la \cref{fig:conductancia_intensidad_LSQ} se muestra la curva de la \cref{eq:
 % se calcula la intensidad reflejada en base a los parametros del LDR
 % se arma el codigo rgb
 
-Una vez que se calibró el dispositivo, ya es posible realizar mediciones. El proceso de medición comienza colocando el dispositivo sobre la superficie que se desea medir. Luego, el dispositivo enciende sus LED a la máxima intensidad utilizando los colores rojo, verde y azul por separado. Se toman muestras de la tensión a la salida del circuito de acondicionamiento para cada color, y se calcula la conductancia $G$ del LDR que se obtuvo para cada uno.
+Una vez que se calibró el dispositivo y se encontraron los valores de $K_a$ y $\gamma$ para cada color, ya es posible realizar mediciones. El proceso de medición comienza colocando el dispositivo sobre la superficie que se desea medir. Luego, el dispositivo enciende sus LED a la máxima intensidad utilizando los colores rojo, verde y azul por separado. Se toman muestras de la tensión a la salida del circuito de acondicionamiento para cada color, y se calcula la conductancia $G$ del LDR que se obtuvo para cada uno.
 
 Luego, se utilizan los parámetros obtenidos durante la calibración para determinar el color de la superficie. Debido a que la intensidad $c$ de la \cref{eq:respuesta_LDR_aprox} se mide en el rango de \numrange{0}{255}, los resultados para cada color se pueden combinar y representar directamente utilizando el código de colores RGB.
 
@@ -426,9 +422,9 @@ void usb_task(void *arg) {
 }
 \end{lstlisting}
 
-A su vez, la tarea \verb|usb_task()| también es la encargada de recibir los mensajes provenientes desde el host, e interpretarlos como comandos. Esto se logra utilizando la función callback provista por TinyUSB \verb|tud_cdc_rx_cb()|. Cuando se reciben datos, esta función es ejecutada por el stack USB cuando corre \verb|tud_task()|. Cada mensaje recibido se interpreta como comando y pasa por medio de una cola a la tarea \verb|worker_task()|.
+A su vez, la tarea \verb|usb_task()| también es la encargada de recibir los mensajes provenientes desde el host, e interpretarlos como comandos. Esto se logra utilizando la función callback provista por TinyUSB: \verb|tud_cdc_rx_cb()|, cuya lógica de decodificación se muestra en el Listado~\ref{lst:usb_callback}. Cuando se reciben datos, esta función es ejecutada por el stack USB cuando corre \verb|tud_task()|. Cada mensaje recibido se interpreta como comando y envía por medio de una cola a la tarea \verb|worker_task()|.
 
-\begin{lstlisting}[language=c,caption={Callback para recibir e interpretar comandos recibidos desde el host.}]
+\begin{lstlisting}[language=c,caption={Callback para recibir e interpretar comandos recibidos desde el host.}, label={lst:usb_callback}]
 void tud_cdc_rx_cb(uint8_t itf) {
     uint8_t rx_buf[ACP_CMD_MAX_SIZE + 1];
 
@@ -446,13 +442,13 @@ void tud_cdc_rx_cb(uint8_t itf) {
 }
 \end{lstlisting}
 
-Por otro lado, la segunda tarea \verb|worker_task()| es responsable de recibir y ejecutar los comandos, y devolver las respuestas a la tarea \verb|usb_task()| para enviarlas al host.
+Por otro lado, la segunda tarea \verb|worker_task()| es responsable de recibir y ejecutar los comandos, y devolver las respuestas a la tarea \verb|usb_task()| para enviarlas al host. Su estructura general se muestra en el Listado~\ref{lst:worker_task}.
 
 Esto se logra recibiendo los comandos a través de una cola de FreeRTOS. La tarea bloquea hasta recibir un nuevo comando, y luego ejecuta su correspondiente acción según el tipo de comando recibido. Una vez terminado, cada comando arma su mensaje de respuesta, y lo envía a la \verb|usb_task()| mediante un buffer de mensajes. 
 
 La estructura general de la tarea \verb|usb_task()| se muestra a continuación:
 
-\begin{lstlisting}[language=c, caption={Estructura de la tarea procesadora.}]
+\begin{lstlisting}[language=c, caption={Estructura de la tarea procesadora.}, label={lst:worker_task}]
 void worker_task(void *arg) {
     acp_command_t cmd;
     while (1) {
@@ -470,18 +466,21 @@ void worker_task(void *arg) {
 
 \subsection{Aplicación de Linea de Comandos} \label{sec:aplicacion_CLI}
 Para facilitar la interacción con el dispositivo y el procesamiento de las mediciones se desarrolló una aplicación de línea de comandos (CLI) en Python. La aplicación se comunica con el dispositivo a través de USB utilizando la librería \textit{pyserial}, que encapsula el acceso al puerto serie. 
-La misma se organiza en tres modilos principales:
-\verb|serialpal.py|, \verb|cli.py|, y \verb|json_exporter.py|. Adicionalmente, se desarrollaron scripts auxiliares para el procesamiento y visualización de datos fuera de línea
+La misma se organiza en tres módulos principales:
+\begin{itemize}
+    \item \verb|serialpal.py|
+    \item \verb|cli.py|
+    \item \verb|json_exporter.py|
+\end{itemize}
+
+Adicionalmente, se desarrollaron scripts auxiliares para el procesamiento y visualización de datos.
 
 \subsubsection{Módulo \texttt{serialpal.py}}
 Este módulo actúa como capa de adaptación entre la interfaz de usuario y el dispositivo físico,
-encapsulando toda la lógica de comunicación serial. Para acceder al puerto serie del sistema
-operativo, se utilizó la librería \textit{pyserial}, que provee una interfaz uniforme
-independientemente de la plataforma utilizada.\\
+encapsulando toda la lógica de comunicación serial. Para acceder al puerto serie del sistema operativo, se utilizó la librería \textit{pyserial}, que provee una interfaz uniforme independientemente del sistema operativo del host.
 
 La clase principal \verb|SerialPal| provee métodos para listar los puertos disponibles del sistema,
-conectarse a uno de ellos, y enviar y recibir mensajes siguiendo el protocolo de comunicación
-descripto en la sección anterior.
+conectarse a uno de ellos, y enviar y recibir mensajes siguiendo el protocolo de comunicación descrito en la sección anterior.
 
 El método \verb|send()| construye y envía un comando con el formato \\ \verb|&<cmd>,<arg1>,<arg2>*|, mientras que \verb|receive()| lee la respuesta del dispositivo
 interpretando primero el encabezado para determinar el tipo y la longitud del payload, y luego
@@ -511,8 +510,7 @@ Los comandos más relevantes son los siguientes:
           desviación estándar.
     \item \verb|set_led <índice> <rgb>|: configura el color de un LED del dispositivo mediante un
           código RGB de \qty{24}{bits}.
-    \item \verb|sweep <canal>|: ejecuta el procedimiento de calibración para el canal de color
-          indicado (R, G o B), descripto en la \cref{sec:caracterizacion_LDR}.
+    \item \verb|sweep <canal>|: ejecuta el procedimiento de calibración para el canal de color indicado (R, G o B), descrito en la \cref{sec:caracterizacion_LDR}.
     \item \verb|measure|: realiza una medición de color completa utilizando los parámetros del
           modelo LDR previamente calculados, y muestra el resultado como código RGB.
 \end{itemize}
@@ -560,6 +558,68 @@ el rango de funcionamiento del circuito antes de realizar mediciones.
 %     - 
 
 \section{Resultados}
+
+Se comprobó el funcionamiento del dispositivo y del proceso de calibración. Durante las pruebas, se calibró el dispositivo sobre papel de impresora, cuya superficie blanca y opaca asegura una reflexión mayormente difusa, lo cual es ideal para el funcionamiento correcto del dispositivo. Tal como se describió en los apartados anteriores, se ejecutó el comando \verb|measure| para cada canal, y luego el script \verb|fit_LDR_curves.py| para obtener los parámetros del LDR. Los resultados obtenidos se muestran en el Listado~\ref{lst:ldr_params}.
+
+\begin{lstlisting}[caption={Parametros obtenidos de la caracterización del LDR.}, label={lst:ldr_params}]
+{
+    "R": {
+        "Ka": 0.011508412425650682,
+        "gamma": 0.8527065806062964
+    },
+    "G": {
+        "Ka": 0.0032507832523976554,
+        "gamma": 0.8597395131749697
+    },
+    "B": {
+        "Ka": 0.0030240133142661603,
+        "gamma": 0.8283233614433873
+    }
+}
+\end{lstlisting}
+
+Como se puede observar, el parámetro $\gamma$ es prácticamente idéntico para los tres colores. Además, se concluye que los resultados obtenidos son coherentes con la \cref{fig:LDR_respuesta_espectral}, ya que el LDR presenta distintas sensibilidades para cada color, ya que cada canal presenta distintos valores de $K_a$.
+
+Por último, se tomaron medidas sobre superficies de distintos colores y se compararon los resultados con los de una aplicación móvil para medir colores. La aplicación elegida fue \textit{Color Picker - Pixel Color}, disponible en el App Store de iOS. El dispositivo utilizado fue un iPhone 16.
+
+Se utilizó la hoja de calibración mostrada en la \cref{fig:hoja_calibracion}, la cuál cuenta con parches de color verde, amarillo, celeste y rosado. Se utilizó la aplicación móvil para obtener un color de referencia, y se comparó con los resultados obtenidos con el dispositivo. Las \crefrange{fig:resultado_verde}{fig:resultado_rosa} muestran una comparación de los resultados obtenidos para cada parche de color.
+
+En base a los resultados obtenidos se concluye que se lograron los objetivos propuestos para este trabajo. Se logró diseñar e implementar un dispositivo de bajo costo que permite estimar el color de una superficie, cuyos resultados son comparables con los obtenidos utilizando una cámara de buena calidad de un dispositivo móvil. Además, gracias al procedimiento de calibración, se logró obtener una curva de respuesta aproximada del LDR, y en teoría permitiría obtener resultados similares con otros LDR.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{hoja_calibracion_comprim.JPG}
+    \caption{Hoja de calibración utilizada.}
+    \label{fig:hoja_calibracion}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.9\textwidth]{resultado_verde.png}
+    \caption{Comparación de resultados para la superficie verde.}
+    \label{fig:resultado_verde}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.9\textwidth]{resultado_amarillo.png}
+    \caption{Comparación de resultados para la superficie amarilla.}
+    \label{fig:resultado_amarillo}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.9\textwidth]{resultado_celeste.png}
+    \caption{Comparación de resultados para la superficie celeste.}
+    \label{fig:resultado_celeste}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.9\textwidth]{resultado_rosa.png}
+    \caption{Comparación de resultados para la superficie rosa.}
+    \label{fig:resultado_rosa}
+\end{figure}
 
 \printbibliography{}
 \end{document}
