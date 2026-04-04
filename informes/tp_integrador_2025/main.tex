@@ -64,6 +64,16 @@ Departamento de Ingeniería Electrónica,\\ Facultad Regional San Francisco, Có
 \tableofcontents
 \newpage
 
+\section{Resumen}
+Se diseñó e implementó un sensor de colores por reflexión de bajo costo, capaz de estimar el color de una superficie y expresarlo como un código de color de 24 bits en formato RGB. El dispositivo emplea una resistencia dependiente de la luz como sensor, iluminando la superficie objetivo de forma secuencial con diodos emisores de luz de cada color, y midiendo la intensidad de la luz reflejada en cada caso.
+
+Dado que los LDR suelen tener baja trazabilidad y amplia variación en su respuesta espectral, se desarrolló un procedimiento de caracterización basado en mínimos cuadrados para modelar su comportamiento ante cada longitud de onda. Se diseñó un circuito de acondicionamiento y se utiliza un microcontrolador para comunicarse con una computadora mediante puerto serie virtual.
+
+Se validó el funcionamiento del dispositivo y del proceso de calibración comparando los resultados obtenidos sobre superficies de distintos colores con los de una aplicación móvil de referencia. 
+
+\noindent\textbf{Palabras clave:} Sensor de color, fotorresistencia, LDR, reflexión, calibración.
+
+
 \section{Introducción}
 
 El color es una percepción visual que surge debido a la detección de diferentes longitudes de onda que no son absorbidas por un objeto o superficie. El conjunto de señales de distintas frecuencias compone el color de dicho objeto. Éstas, dentro del espectro visible de la luz, abarcan una gama de colores que va desde el rojo, con frecuencias más bajas y longitudes de onda más largas, hasta el violeta, con frecuencias más altas y longitudes de onda más cortas.
@@ -109,7 +119,7 @@ La misma cuenta con dos compartimientos internos. El compartimiento inferior se 
 
 \begin{figure}
     \centering
-    \includegraphics[width=\textwidth,scale=1.5]{vistas_carcasa.pdf}
+    \includegraphics[width=\textwidth]{vistas_carcasa.pdf}
     \caption{Vistas de la carcasa diseñada para el dispositivo.}
     \label{fig:vistas_carcasa}
 \end{figure}
@@ -242,7 +252,7 @@ En la \cref{fig:ADC_intensidad} se observa las muestras obtenidas para un barrid
 
 En la \cref{fig:conductancia_intensidad} se muestra el resultado de aplicar la \cref{eq:conductancia_Vo} a las muestras de la \cref{fig:ADC_intensidad}. Se utiliza una escala logarítmica para la intensidad, mostrada en el eje $x$, ya que la respuesta del LDR no es lineal, tal como lo demuestra la \cref{eq:respuesta_LDR_aprox}.
 
-Una vez recolectadas las muestras y calculada la conductancia del LDR para cada una, se procedió aplicando la técnica de mínimos cuadrados para obtener una aproximación de la respuesta dispositivo. La $i$-ésima muestra recolectada se expresa como:
+Una vez recolectadas las muestras y calculada la conductancia del LDR para cada una, se procedió aplicando la técnica de mínimos cuadrados para obtener una aproximación de la respuesta del dispositivo. La $i$-ésima muestra recolectada se expresa como:
 \begin{equation*}
     G_i = K_a c_i^\gamma
 \end{equation*}
@@ -621,7 +631,7 @@ En base a los resultados obtenidos se concluye que se lograron los objetivos pro
     \label{fig:resultado_rosa}
 \end{figure}
 
-\printbibliography{}
+\printbibliography[title={Referencias}]
 \end{document}
 
 

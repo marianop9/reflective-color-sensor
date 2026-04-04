@@ -14,6 +14,7 @@
 \usepackage{siunitx}
 \usepackage{listings}
 \usepackage{booktabs}
+\usepackage{listings}
 
 % Configuración de listings para código C
 \lstset{
@@ -64,21 +65,34 @@
         \end{column}
         \begin{column}{0.5\textwidth}
             \centering
-            \includegraphics[width=\textwidth]{LDR_spectral_response.png}
+            \includegraphics[width=\textwidth]{beamer/montaje2.png}
             % cambiar x diagrama general
         \end{column}
     \end{columns}
 \end{frame}
 
 \begin{frame}{Opciones Comerciales}
-    \begin{itemize}
-        \item Utiliza luz blanca, filtros, y un fotodiodo.
-    \end{itemize}
+    Sensor Adafruit TCS34725: utiliza luz blanca, filtros, y un fotodiodo.
+    \vfill
+    \begin{columns}
+        \begin{column}{0.5\textwidth}
+        \begin{figure}
+            \includegraphics[width=0.5\textwidth]{beamer/tcs_34725_color_sensor.png}
+            \caption{Sensor Adafruit TCS34725.}
+        \end{figure}
+    \end{column}
+        \begin{column}{0.5\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{montaje.png}
+            % cambiar x diagrama general
+        \end{column}
+    \end{columns}
+\end{frame}
 
-    \begin{figure}
-        \includegraphics[width=0.5\textwidth]{beamer/tcs_34725_color_sensor.png}
-        \caption{Sensor de color Adafruit TCS34725.}
-    \end{figure}
+\begin{frame}[label=arquitectura]
+    \frametitle{Arquitectura del Dispositivo}
+    \centering
+    \includegraphics[width=0.7\textwidth]{beamer/arquitectura.pdf}
 \end{frame}
 
 % --- Hardware y Diseño ---
@@ -90,17 +104,25 @@
     \end{itemize}
     \centering
     \includegraphics[width=0.7\textwidth]{vistas_carcasa.pdf}
-    % \captionof{figure}{Vistas de la carcasa diseñada.}
 \end{frame}
 
-\begin{frame}{Componentes Electrónicos: Transductor}
+\begin{frame}{Componentes Electrónicos: LDR}
     \begin{columns}
         \begin{column}{0.5\textwidth}
+            \begin{itemize}
+                \item Respuesta no lineal
+                \item Distintas sensibilidades a distintas longitudes de onda.
+                \item Baja trazabilidad
+                \item Respuesta variable
+            \end{itemize}
+            La respuesta se puede aproximar como:
+            \[
+                R = K_a E^{-\gamma}
+            \]
         \end{column}
         \begin{column}{0.5\textwidth}
             \begin{figure}
                 \includegraphics[width=\textwidth]{LDR_spectral_response.png}
-                \caption{Respuesta espectral de distintos tipos de LDR.}
             \end{figure}
         \end{column}
     \end{columns}
@@ -108,137 +130,374 @@
 
 \begin{frame}{Componentes Electrónicos}
     \begin{columns}
-        \begin{column}{0.5\textwidth}
-            \textbf{Unidad de Control:}
+        \begin{column}{0.6\textwidth}
+            \textbf{Unidad de Control --- Raspberry Pi Pico:}
             \begin{itemize}
-                \item Raspberry Pi Pico (RP2040).
-                \item DMA para muestreo de ADC.
+                \item Microcontrolador RP2040
+                \item DMA para muestreo de ADC
+                \item Stack USB
+                \item I/O programable
             \end{itemize}
             \textbf{Iluminantes:}
             \begin{itemize}
-                \item LEDs WS2812 (RGB).
-                \item Control preciso mediante \textbf{PIO} (I/O programable).
+                \item LEDs WS2812 (RGB)
+                \item Múltiples LEDs conectados en cascada
+            \end{itemize}
+            \textbf{Circuito de Acondicionamiento:}
+            \begin{itemize}
+                \item Amplificador operacional LM358
+                \item Switch cuádruple CD4066
+                \item Resistencias de \qtylist{1;10;100}{\kohm}
             \end{itemize}
         \end{column}
-        \begin{column}{0.5\textwidth}
+        \begin{column}{0.4\textwidth}
             \centering
-            %             \rule{4cm}{3cm} % Placeholder para foto del hardware real
+            \includegraphics[width=\textwidth,angle=-90]{foto_circuito_comprim.JPG}
         \end{column}
     \end{columns}
-    \begin{block}{Ventajas del RP2040}
-        Doble núcleo ARM Cortex-M0+ y stack USB integrado.
-    \end{block}
 \end{frame}
 
 % --- Circuito de Acondicionamiento ---
 \section{Circuito de Acondicionamiento}
 \begin{frame}{Acondicionamiento de Señal}
-    \centering
-    \includegraphics[width=0.55\textwidth]{circ_acond.png}
-    % \captionof{figure}{Esquemático: Amplificador inversor con offset.}
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.5\textwidth]{circ_acond.png}
+    \end{figure}
     
-    \begin{equation*}
-        V_o = V_{+} + (V_{+} - V_{s}) \frac{R_f}{R_{LDR}} \text{ }
-    \end{equation*}
+    \begin{align*}
+        V_o &= V_{+} + (V_{+} - V_{s}) \frac{R_f}{R_{LDR}} \\
+        V_o &= V_{+} + (V_{+} - V_{s}) R_f G
+    \end{align*}
 
-    \begin{itemize}
-        \item \textbf{Control de Ganancia:} Switch CD4066 para alternar $R_f$ (\qtylist{1;10;100}{\kohm}).
-        \item Evita la saturación ante el amplio rango del LDR (\qtyrange{1}{1000}{\kohm}).
-    \end{itemize}
+    Mediante el CD4066, $R_f$ puede tomar distintos valores discretos para evitar la saturación ante el amplio rango del LDR (\qtyrange{1}{1000}{\kohm}). 
 \end{frame}
 
 \begin{frame}{Respuesta del Circuito}
-    \begin{figure}[htbp]
-        \includegraphics[width=0.7\textwidth]{circuit_response.png}
+    \begin{equation*}
+        G = \frac{V_+ - V_o}{R_f * (V_s-V_+)}
+    \end{equation*}
+
+    \begin{figure}
+        \includegraphics[width=0.7\textwidth]{circuit_response}
         \caption{Tensión de salida vs Resistencia del LDR para distintas $R_f$.}
     \end{figure}
 \end{frame}
 
 % --- Caracterización ---
 \section{Caracterización del LDR}
-\begin{frame}{Modelo Matemático y Calibración}
+\begin{frame}{Modelo Matemático del LDR}
+    La respuesta del LDR no es lineal:
+    \begin{equation*}
+        R = K E^{-\gamma}
+    \end{equation*}
+    \begin{itemize}
+        \item $E$: \alert{Iluminancia}
+        \item $Ka, \gamma$: Parámetros desconocidos.
+    \end{itemize}
+    \pause
+    \vfill
+    Expresado en terminos de conductancia:
+    \begin{equation*}
+        G = K_a E^{\gamma}
+    \end{equation*}
+\end{frame}
+
+\begin{frame}{Iluminancia}
+    \begin{block}{Definición}
+        La iluminancia es la cantidad de flujo luminoso que incide sobre una superficie por unidad de área.
+        
+        \begin{itemize}
+            \item Define qué tan iluminada está una superficie
+            \item Medida en lux ($\qty{1}{lux} = \qty{1}{\lumen\per\meter^2}$)
+            \item Disminuye con el cuadrado de la distancia a la fuente
+            \item Se mide con un \alert{luxómetro}
+        \end{itemize}
+    \end{block}
+\end{frame}
+
+\begin{frame}{Modelo Matemático Aproximado del LDR}
     \begin{columns}
         \begin{column}{0.5\textwidth}
-            La respuesta del LDR no es lineal:
+            Es imposible determinar la \alert{iluminancia}, por lo que se utiliza una aproximación.
+            
             \begin{equation*}
-                G = K_a c^{\gamma} \text{ }
+                E \approx c ,\quad c \in [0,255]
             \end{equation*}
-            \begin{itemize}
-                \item $G$: Conductancia.
-                \item $c$: Intensidad del LED.
-                \item $K_a, \gamma$: Parámetros empíricos.
-            \end{itemize}
+            \begin{equation*}
+                G = K_a c^{\gamma}
+            \end{equation*}
         \end{column}
         \begin{column}{0.5\textwidth}
             \centering
             \includegraphics[width=\textwidth]{conductancia_intensidad_LSQ.png}
-            % \captionof{figure}{Ajuste por Mínimos Cuadrados.}
         \end{column}
     \end{columns}
 \end{frame}
 
-\begin{frame}{Proceso de Medicion}
+\begin{frame}{Región de Funcionamiento}
+    Se define una región de funcionamiento del dispositivo.
+
+    Para muestras del ADC con códigos por debajo de \alert{850} y por encima de \alert{3800}, la respuesta del circuito no variaba al cambiar la intensidad de los LED.
+    \begin{figure}
+        \includegraphics[width=0.7\textwidth]{circuit_response_limits.png}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Proceso de Calibración}
+    \begin{columns}
+        \begin{column}{0.5\textwidth}
+            \begin{itemize}
+                \item Cada color por separado
+                \item Barrido de intensidad 
+                \item 40 valores de intensidad 
+                \item Espaciado logarítmico
+            \end{itemize}
+            \vfill
+            Si la medición no se encuentra dentro de la región de funcionamiento, se ajusta la resistencia de ganancia y se repite.
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \begin{figure}
+                \centering
+                \includegraphics[width=\textwidth]{respuesta_barrido}
+            \end{figure}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Proceso de Calibración}
+    \centering
+    \includegraphics<1>[height=0.9\textheight]{beamer/resultados_barrido}
+    \includegraphics<2>[width=0.7\textwidth]{conductancia_intensidad}
+\end{frame}
+
+\begin{frame}{Cálculo de los Parametros del LDR}
+Una vez recolectadas las muestras para cada color, se aplica la técnica de mínimos cuadrados (LSQ) para aproximar la respuesta.
+
+La $i$-ésima muestra recolectada se expresa como:
+\begin{equation*}
+    G_i = K_a c_i^\gamma
+\end{equation*}
+
+\pause
+\begin{equation}    
+    \ln G_i = \ln K_a + \gamma \ln c
+\end{equation}
+
+\pause
+Considerando $N$ muestras distintas, se arma un sistema de ecuaciones y se expresa en forma de matrices:
+
+\begin{equation}
+    \begin{bmatrix}
+        \ln G_1    \\
+        \ln G_2    \\
+        \vdots \\
+        \ln G_N
+    \end{bmatrix}
+    =
+    \begin{bmatrix}
+        1      & \ln c_1 \\
+        1      & \ln c_2 \\
+        \vdots & \vdots  \\
+        1      & \ln c_N
+    \end{bmatrix}
+    \begin{bmatrix}
+        \ln K_a \\
+        \gamma
+    \end{bmatrix}
+\end{equation}
 
 \end{frame}
 
-% --- Firmware ---
-\section{Firmware}
-\begin{frame}{Arquitectura del Firmware (FreeRTOS)}
-    \begin{itemize}
-        \item Implementación en C usando \textbf{Pico-SDK} y \textbf{TinyUSB}.
-        \item División de tareas para manejar la asincronía del USB.
-    \end{itemize}
-    \begin{center}
-        \begin{tabular}{ll}
-            \toprule
-            \textbf{Tarea} & \textbf{Función} \\
-            \midrule
-            \texttt{usb\_task()} & Maneja el stack USB y comunicación con Host. \\
-            \texttt{worker\_task()} & Ejecuta comandos (muestreo, LEDs). \\
-            \bottomrule
-        \end{tabular}
-    \end{center}
+\begin{frame}{Cálculo de los Parámetros del LDR}
+Considerando $N$ muestras distintas, se arma un sistema de ecuaciones y se expresa en forma de matrices:
+
+\begin{align*}
+    \begin{bmatrix}
+        \ln G_1    \\
+        \ln G_2    \\
+        \vdots \\
+        \ln G_N
+    \end{bmatrix}
+    &=
+    \begin{bmatrix}
+        1      & \ln c_1 \\
+        1      & \ln c_2 \\
+        \vdots & \vdots  \\
+        1      & \ln c_N
+    \end{bmatrix}
+    \begin{bmatrix}
+        \ln K_a \\
+        \gamma
+    \end{bmatrix}
+    \\
+    Y &= A x
+\end{align*}
+
+Los valores de la matriz $x$ que mejor se ajustan a las muestras obtenidas se puede calcular como:
+\begin{equation} \label{eq:LSQ_formula}
+    x = {(A^T A)}^{-1} A^T Y
+\end{equation}
+
 \end{frame}
 
-\begin{frame}[fragile]{Código: Gestión de Comunicación USB}
-\begin{lstlisting}[caption={Estructura de la tarea usb\_task() }]
-void usb_task(void *arg) {
-    while (1) {
-        tud_task(); // Ejecuta el stack USB
-        if (!msg_in_buffer) {
-            size_t n = xMessageBufferReceive(tx_msg_buffer, ...);
-        }
-        if (msg_in_buffer) {
-            tud_cdc_write(...);
-        }
+\begin{frame}[fragile]{Parámetros del LDR}
+\begin{lstlisting}
+{
+    "R": {
+        "Ka": 0.011508412425650682,
+        "gamma": 0.8527065806062964
+    },
+    "G": {
+        "Ka": 0.0032507832523976554,
+        "gamma": 0.8597395131749697
+    },
+    "B": {
+        "Ka": 0.0030240133142661603,
+        "gamma": 0.8283233614433873
     }
 }
 \end{lstlisting}
 \end{frame}
 
-% --- Conclusión ---
-\section{Resultados y Conclusiones}
-\begin{frame}{Proceso de Medición Final}
+\section{Proceso de Medición}
+\begin{frame}{Proceso de Medición}
+    Una vez determinados los parámetros del LDR, se pueden tomar mediciones.
+
+    Para cada color R-G-B:
     \begin{enumerate}
-        \item Colocación sobre la superficie.
-        \item Iluminación secuencial R-G-B a máxima intensidad.
+        \item Se coloca el dispositivo sobre la superficie a medir.
+        \item Iluminación a máxima intensidad.
         \item Muestreo de tensión y cálculo de $G$.
-        \item Aplicación de parámetros de calibración para obtener el código RGB de 24 bits.
     \end{enumerate}
-    \begin{block}{Conclusión}
-        Se logró un dispositivo económico con precisión aceptable mediante la caracterización empírica del sensor LDR.
-    \end{block}
+    
+    \[
+        G \approx K_a c^\gamma
+    \]
+
+    \begin{itemize}
+        \item $G$ se mide
+        \item $K_a ,\, \gamma$ se conocen de la calibración
+    \end{itemize}
+\end{frame}
+
+\section{Resultados}
+\begin{frame}{Resultados}
+    \begin{columns}
+        \begin{column}{0.5\textwidth}
+            \begin{figure}
+                \centering
+                \includegraphics[width=\textwidth]{resultado_verde}
+            \end{figure}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \begin{figure}
+                \centering
+                \includegraphics[width=\textwidth]{resultado_rosa}
+            \end{figure}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Resultados}
+    \begin{columns}
+        \begin{column}{0.5\textwidth}
+            \begin{figure}
+                \centering
+                \includegraphics[width=\textwidth]{resultado_celeste}
+            \end{figure}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \begin{figure}
+                \centering
+                \includegraphics[width=\textwidth]{resultado_amarillo}
+            \end{figure}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% --- Firmware ---
+\section{Firmware}
+
+\begin{frame}
+    \frametitle{Implementación en Firmware}
+
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.7\textwidth]{beamer/arquitectura.pdf}
+    \end{figure}    
+
+\end{frame}
+
+\begin{frame}{Arquitectura del Firmware}
+    \begin{itemize}
+        \item Implementación en C
+        \item Abstracción de hardware: \textbf{Pico-SDK}
+        \item Implementación del stack USB: \textbf{TinyUSB}
+        \item SO de tiempo real: \textbf{FreeRTOS}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Arquitectura del Firmware}
+    \begin{itemize}
+        \item \texttt{usb\_task()} 
+            \begin{itemize}
+                \item Ejecuta del stack USB 
+                \item Recibe/envía de mensajes desde/hacía el host
+            \end{itemize}
+        \item \texttt{worker\_task()} 
+            \begin{itemize}
+                \item Ejecuta de comandos
+                \item Interactúa con periféricos a través de \textbf{drivers}
+                \item Arma de mensajes de respuesta
+            \end{itemize} 
+        \item Librería \texttt{ascii-communication-protocol} (ACP) 
+            \begin{itemize}
+                \item Interpreta mensajes recibidos como comandos
+                \item Codifica mensajes a enviar en el formato de respuesta
+            \end{itemize}          
+    \end{itemize}
 \end{frame}
 
 \begin{frame}
-    \centering
-    \Huge ¿Preguntas?
+    \frametitle{Arquitectura del Firmware}
+
+    \begin{columns}
+        \begin{column}{0.3\textwidth}
+            \begin{itemize}
+                \item \texttt{usb\_task()} 
+                \item \texttt{worker\_task()} 
+                \item Librería ACP 
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.7\textwidth}
+            \begin{figure}
+                \centering
+                \includegraphics[width=\textwidth]{beamer/overview_diagram_device}        
+            \end{figure}
+        \end{column}
+    \end{columns}
     
-    \vspace{1cm}
-    \normalsize
-    \textbf{Contacto:} \\
-    federicobeck91@gmail.com \\
-    perezmariano7401@gmail.com 
+
+\end{frame}
+
+\begin{frame}{Aplicación CLI}
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.8\textwidth]{beamer/overview_diagram_host}
+    \end{figure}
+\end{frame}
+
+% --- Conclusión ---
+\begin{frame}
+    \begin{block}{Conclusión}
+        Se logró un dispositivo económico capaz de distinguir y medir de colores de forma aceptable mediante la caracterización empírica del sensor LDR.
+    \end{block}
+    
+    \begin{figure}
+        \centering
+        \includegraphics[width=\textwidth]{beamer/final_slide}        
+    \end{figure}
 \end{frame}
 
 \end{document}
