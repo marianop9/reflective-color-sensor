@@ -1,5 +1,8 @@
 {
     "cSpell.language": "es-ES",
     "cSpell.enabled": true,
-    "latex-workshop.latex.outDir": "%DIR%/out"
+    "latex-workshop.latex.outDir": "%DIR%/out",
+    "cSpell.enabledFileTypes": {
+        "bibtex": false
+    }
 }
