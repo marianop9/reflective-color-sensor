@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   version="1.1"
+   id="svg1"
+   width="376"
+   height="320"
+   viewBox="0 0 376 320"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs1">
+    <clipPath
+       clipPathUnits="userSpaceOnUse"
+       id="clipPath2">
+      <path
+         d="M 0,0 H 376.31248 V 319.68749 H 0 Z"
+         clip-rule="evenodd"
+         id="path2" />
+    </clipPath>
+  </defs>
+  <g
+     id="g1">
+    <path
+       id="path1"
+       d="M 0,0 H 376 V 320 H 0 Z"
+       style="fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none"
+       clip-path="url(#clipPath2)" />
+    <path
+       id="path3"
+       d="M 80,820 H 470"
+       style="fill:none;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+       transform="matrix(0.82673872,0,0,0.82673872,-39.309827,-655.09895)" />
+    <path
+       id="path4"
+       d="m 80,820 v 330 H 470 V 820"
+       style="fill:none;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+       transform="matrix(0.82673872,0,0,0.82673872,-39.309827,-655.09895)" />
+    <path
+       id="path5"
+       d="m 120,850 h 120 v 60 H 120 Z"
+       style="fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+       transform="matrix(0.82673872,0,0,0.82673872,-39.309827,-655.09895)" />
+    <text
+       id="text5"
+       xml:space="preserve"
+       transform="matrix(0.82673872,0,0,0.82673872,87.852917,75.324638)"><tspan
+         id="tspan5"
+         style="font-variant:normal;font-weight:normal;font-size:12px;font-family:'Liberation Sans';writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+         x="0"
+         y="0">Host / PC</tspan></text>
+    <path
+       id="path6"
+       d="M 246.37,880 C 322.12335,880 360,904.54333 360,953.63"
+       style="fill:none;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+       transform="matrix(0.82673872,0,0,0.82673872,-39.309827,-655.09895)" />
+    <path
+       id="path7"
+       d="m 241.12,880 7,-3.5 -1.75,3.5 1.75,3.5 z"
+       style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+       transform="matrix(0.82673872,0,0,0.82673872,-39.309827,-655.09895)" />
+    <path
+       id="path8"
+       d="m 360,958.88 -3.5,-7 3.5,1.75 3.5,-1.75 z"
+       style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+       transform="matrix(0.82673872,0,0,0.82673872,-39.309827,-655.09895)" />
+    <path
+       id="path9"
+       d="m 316,874 h 49 v 13 h -49 z"
+       style="fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none"
+       transform="matrix(0.82673872,0,0,0.82673872,-39.723202,-655.51239)" />
+    <text
+       id="text9"
+       xml:space="preserve"
+       transform="matrix(0.82673872,0,0,0.82673872,221.31955,75.324638)"><tspan
+         id="tspan9"
+         style="font-variant:normal;font-weight:normal;font-size:11px;font-family:'Liberation Sans';writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+         x="0"
+         y="0">USB/CDC</tspan></text>
+    <path
+       id="path10"
+       d="m 275,990 h -20 5 -13.63"
+       style="fill:none;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+       transform="matrix(0.82673872,0,0,0.82673872,-39.309827,-655.09895)" />
+    <path
+       id="path11"
+       d="m 241.12,990 7,-3.5 -1.75,3.5 1.75,3.5 z"
+       style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+       transform="matrix(0.82673872,0,0,0.82673872,-39.309827,-655.09895)" />
+    <path
+       id="path12"
+       d="m 275,960 h 170 v 60 H 275 Z"
+       style="fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+       transform="matrix(0.82673872,0,0,0.82673872,-39.309827,-655.09895)" />
+    <text
+       id="text12"
+       xml:space="preserve"
+       transform="matrix(0.82673872,0,0,0.82673872,190.08433,166.2659)"><tspan
+         id="tspan12"
+         style="font-variant:normal;font-weight:normal;font-size:12px;font-family:'Liberation Sans';writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+         x="0"
+         y="0">Dispositivo / Raspberry Pi Pico</tspan></text>
+    <path
+       id="path13"
+       d="m 180,1020 v 43.63"
+       style="fill:none;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+       transform="matrix(0.82673872,0,0,0.82673872,-39.309827,-655.09895)" />
+    <path
+       id="path14"
+       d="m 180,1068.88 -3.5,-7 3.5,1.75 3.5,-1.75 z"
+       style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+       transform="matrix(0.82673872,0,0,0.82673872,-39.309827,-655.09895)" />
+    <path
+       id="path15"
+       d="m 130,1040 h 101 v 12 H 130 Z"
+       style="fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none"
+       transform="matrix(0.82673872,0,0,0.82673872,-39.723202,-655.51239)" />
+    <text
+       id="text15"
+       xml:space="preserve"
+       transform="matrix(0.82673872,0,0,0.82673872,67.688243,211.73653)"><tspan
+         id="tspan15"
+         style="font-variant:normal;font-weight:normal;font-size:10px;font-family:'Liberation Sans';writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+         x="0"
+         y="0">Reflexión en superficie</tspan></text>
+    <path
+       id="path16"
+       d="m 120,960 h 120 v 60 H 120 Z"
+       style="fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+       transform="matrix(0.82673872,0,0,0.82673872,-39.309827,-655.09895)" />
+    <text
+       id="text16"
+       xml:space="preserve"
+       transform="matrix(0.82673872,0,0,0.82673872,63.037837,166.2659)"><tspan
+         id="tspan16"
+         style="font-variant:normal;font-weight:normal;font-size:12px;font-family:'Liberation Sans';writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+         x="0"
+         y="0">Iluminante / WS2812</tspan></text>
+    <path
+       id="path17"
+       d="m 120,1070 h 120 v 60 H 120 Z"
+       style="fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+       transform="matrix(0.82673872,0,0,0.82673872,-39.309827,-655.09895)" />
+    <text
+       id="text17"
+       xml:space="preserve"
+       transform="matrix(0.82673872,0,0,0.82673872,79.314256,257.20716)"><tspan
+         id="tspan17"
+         style="font-variant:normal;font-weight:normal;font-size:12px;font-family:'Liberation Sans';writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+         x="0"
+         y="0">Sensor / LDR</tspan></text>
+    <path
+       id="path18"
+       d="m 360,1070 v -43.63"
+       style="fill:none;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+       transform="matrix(0.82673872,0,0,0.82673872,-39.309827,-655.09895)" />
+    <path
+       id="path19"
+       d="m 360,1021.12 3.5,7 -3.5,-1.75 -3.5,1.75 z"
+       style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+       transform="matrix(0.82673872,0,0,0.82673872,-39.309827,-655.09895)" />
+    <path
+       id="path20"
+       d="m 295,1040 h 131 v 12 H 295 Z"
+       style="fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none"
+       transform="matrix(0.82673872,0,0,0.82673872,-39.723202,-655.51239)" />
+    <text
+       id="text20"
+       xml:space="preserve"
+       transform="matrix(0.82673872,0,0,0.82673872,204.31973,211.73653)"><tspan
+         id="tspan20"
+         style="font-variant:normal;font-weight:normal;font-size:10px;font-family:'Liberation Sans';writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+         x="0"
+         dx="0 -1.1083984 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -0.55175698"
+         y="0">Tensión muestreada por ADC</tspan></text>
+    <path
+       id="path21"
+       d="m 300,1070 h 120 v 60 H 300 Z"
+       style="fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+       transform="matrix(0.82673872,0,0,0.82673872,-39.309827,-655.09895)" />
+    <text
+       id="text21"
+       xml:space="preserve"
+       transform="matrix(0.82673872,0,0,0.82673872,241.08377,251.41998)"><tspan
+         id="tspan21"
+         style="font-variant:normal;font-weight:normal;font-size:12px;font-family:'Liberation Sans';writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+         x="0"
+         y="0">Circuito</tspan></text>
+    <text
+       id="text22"
+       xml:space="preserve"
+       transform="matrix(0.82673872,0,0,0.82673872,215.9845,263.82107)"><tspan
+         id="tspan22"
+         style="font-variant:normal;font-weight:normal;font-size:12px;font-family:'Liberation Sans';writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+         x="0"
+         y="0">Acondicionamiento</tspan></text>
+    <path
+       id="path22"
+       d="m 240,1100 h 53.63"
+       style="fill:none;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+       transform="matrix(0.82673872,0,0,0.82673872,-39.309827,-655.09895)" />
+    <path
+       id="path23"
+       d="m 298.88,1100 -7,3.5 1.75,-3.5 -1.75,-3.5 z"
+       style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+       transform="matrix(0.82673872,0,0,0.82673872,-39.309827,-655.09895)" />
+    <text
+       id="text23"
+       xml:space="preserve"
+       transform="matrix(0.82673872,0,0,0.82673872,169.6613,266.30128)"><tspan
+         id="tspan23"
+         style="font-variant:normal;font-weight:normal;font-size:10px;font-family:'Liberation Sans';writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+         x="0"
+         y="0">Cambio</tspan></text>
+    <text
+       id="text24"
+       xml:space="preserve"
+       transform="matrix(0.82673872,0,0,0.82673872,178.16121,274.56867)"><tspan
+         id="tspan24"
+         style="font-variant:normal;font-weight:normal;font-size:10px;font-family:'Liberation Sans';writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+         x="0"
+         y="0"> en</tspan></text>
+    <text
+       id="text25"
+       xml:space="preserve"
+       transform="matrix(0.82673872,0,0,0.82673872,163.00863,282.83606)"><tspan
+         id="tspan25"
+         style="font-variant:normal;font-weight:normal;font-size:10px;font-family:'Liberation Sans';writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+         x="0"
+         y="0"> resistencia</tspan></text>
+  </g>
+</svg>
